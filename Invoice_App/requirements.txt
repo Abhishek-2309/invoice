@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+transformers
+torch
+pillow
+bs4
+langchain
+langchain-huggingface
