@@ -15,12 +15,15 @@ llm = HuggingFacePipeline(pipeline=hf_pipe)
 
 def extract_json_from_output(text: str) -> dict:
     print(text)
-    match = re.search(r"```(?:json)?\\s*(\\{.*?\\})\\s*```", text, re.DOTALL)
+    match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
     if not match:
-        match = re.search(r"(\\{.*\\})", text, re.DOTALL)
+        match = re.search(r"(\{.*\})", text, re.DOTALL)
     if match:
-        return json.loads(match.group(1))
-    raise ValueError("No valid JSON")
+        try:
+            return json.loads(match.group(1))
+        except json.JSONDecodeError:
+            pass
+    raise ValueError("No valid JSON object found in LLM output.")
 
 def extract_tables(html: str):
     soup = BeautifulSoup(html, "html.parser")
