@@ -27,7 +27,10 @@ def extract_tables(html: str):
     table_str = "\\n\\n".join(f"[Table {i}]\\n{str(t)}" for i, t in enumerate(tables))
     return tables, table_str, soup
 
-def process_invoice(markdown_html: str) -> dict:
+def process_invoice_dir(markdown_html: str):
+    return process_invoice(markdown_html, llm)
+
+def process_invoice(markdown_html: str, llm) -> dict:
     tables, table_str, soup = extract_tables(markdown_html)
     identify_chain = identify_prompt | llm
 
@@ -60,4 +63,3 @@ def process_invoice(markdown_html: str) -> dict:
         Other_Important_Sections=kv_result.Other_Important_Sections,
     )
     return invoice_data.model_dump()
-
