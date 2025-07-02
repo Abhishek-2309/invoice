@@ -5,7 +5,7 @@ identify_prompt = PromptTemplate(
     template="""
 You are an expert table reader from HTML.
 
-You are given multiple HTML tables extracted from an invoice. Read every table and its corresponding HTML code.
+You are given multiple HTML tables extracted from an invoice. Read every table and its corresponding HTML code carefully.
 
 Identify the table containing line items (such as product/service, quantity, price, etc.).
 
@@ -14,7 +14,7 @@ Your task is to extract:
 2. `items`: each row of item data from that table (e.g., product, quantity, rate, etc.)
 3. `summary_row`: footer/summary row data like total, tax, etc.
 
-- Return only valid **pure JSON**
+Return **ONLY JSON** inside triple backticks like this:
 - Do NOT use markdown formatting or YAML
 - Do NOT include any explanation, comments, or notes
 - Your entire output must be a valid JSON object like:
