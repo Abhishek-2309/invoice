@@ -1,37 +1,31 @@
-# app/llm_processing.py
-
+from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
+from langchain_huggingface.llms import HuggingFacePipeline
 from bs4 import BeautifulSoup
 from app.schemas import TableResult, KVResult, InvoiceSchema
 from app.prompts import identify_prompt, kv_prompt
 import json, re, torch, gc
 
-_llm = None  # Private LLM holder
+model_id = "Qwen/Qwen2.5-7B"
 
-def set_llm(llm_instance):
-    global _llm
-    _llm = llm_instance
+llm_model = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=torch.float16, device_map="auto")
+llm_tokenizer = AutoTokenizer.from_pretrained(model_id)
 
-def get_llm():
-    if _llm is None:
-        raise RuntimeError("LLM not initialized. Call set_llm on startup.")
-    return _llm
+hf_pipe = pipeline("text-generation", model=llm_model, tokenizer=llm_tokenizer, max_new_tokens=4096, return_full_text=False)
+llm = HuggingFacePipeline(pipeline=hf_pipe)
 
 def extract_json_from_output(text: str) -> dict:
-    match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
+    match = re.search(r"```(?:json)?\\s*(\\{.*?\\})\\s*```", text, re.DOTALL)
     if not match:
-        match = re.search(r"(\{.*\})", text, re.DOTALL)
+        match = re.search(r"(\\{.*\\})", text, re.DOTALL)
     if match:
         return json.loads(match.group(1))
-    raise ValueError("No valid JSON found")
+    raise ValueError("No valid JSON")
 
 def extract_tables(html: str):
     soup = BeautifulSoup(html, "html.parser")
     tables = soup.find_all("table")
-    table_str = "\n\n".join(f"[Table {i}]\n{str(t)}" for i, t in enumerate(tables))
+    table_str = "\\n\\n".join(f"[Table {i}]\\n{str(t)}" for i, t in enumerate(tables))
     return tables, table_str, soup
-
-def process_invoice_dir(markdown_html: str):
-    return process_invoice(markdown_html, get_llm())
 
 def process_invoice(markdown_html: str, llm) -> dict:
     tables, table_str, soup = extract_tables(markdown_html)
