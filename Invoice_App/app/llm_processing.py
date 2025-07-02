@@ -35,6 +35,8 @@ def process_invoice(markdown_html: str, llm) -> dict:
         raw_table = identify_chain.invoke({"tables": table_str})
         parsed_table = extract_json_from_output(raw_table)
         table_result = TableResult(**parsed_table)
+    except Exception as e:
+        raise ValueError(f"Failed to parse main table JSON output: {e}") from e
     finally:
         torch.cuda.empty_cache()
         gc.collect()
@@ -48,6 +50,8 @@ def process_invoice(markdown_html: str, llm) -> dict:
         raw_kv = kv_chain.invoke({"doc_body": remaining_html})
         parsed_kv = extract_json_from_output(raw_kv)
         kv_result = KVResult(**parsed_kv)
+    except Exception as e:
+        raise ValueError(f"Failed to parse KV JSON output: {e}") from e
     finally:
         torch.cuda.empty_cache()
         gc.collect()
