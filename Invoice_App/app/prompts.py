@@ -10,9 +10,9 @@ You are given multiple HTML tables extracted from an invoice. Read every table a
 Identify the table containing line items (such as product/service, quantity, price, etc.).
 
 Your task is to extract:
-1. `main_table_index` (int): index of the main line item table
-2. `items` (list of dicts): each row of item data from that table (e.g., product, quantity, rate, etc.)
-3. `summary_row` (dict): footer/summary row data like total, tax, etc.
+1. `main_table_index`: index of the main line item table
+2. `items`: each row of item data from that table (e.g., product, quantity, rate, etc.)
+3. `summary_row`: footer/summary row data like total, tax, etc.
 
 - Return only valid **pure JSON**
 - Do NOT use markdown formatting or YAML
