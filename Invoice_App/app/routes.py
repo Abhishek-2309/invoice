@@ -2,7 +2,7 @@ import os, shutil
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
 from app.ocr import ocr_page_with_nanonets
-from app.llm_processing import process_invoice
+from app.llm_processing import process_invoice_dir
 
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -17,7 +17,7 @@ async def upload_invoice(file: UploadFile = File(...)):
         shutil.copyfileobj(file.file, f)
     try:
         markdown = ocr_page_with_nanonets(temp_path)
-        structured_json = process_invoice(markdown)
+        structured_json = process_invoice_dir(markdown)
         return JSONResponse(content=structured_json)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Processing failed: {e}")
