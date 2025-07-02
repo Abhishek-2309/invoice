@@ -14,6 +14,7 @@ hf_pipe = pipeline("text-generation", model=llm_model, tokenizer=llm_tokenizer, 
 llm = HuggingFacePipeline(pipeline=hf_pipe)
 
 def extract_json_from_output(text: str) -> dict:
+    print(text)
     match = re.search(r"```(?:json)?\\s*(\\{.*?\\})\\s*```", text, re.DOTALL)
     if not match:
         match = re.search(r"(\\{.*\\})", text, re.DOTALL)
