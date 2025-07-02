@@ -14,7 +14,6 @@ hf_pipe = pipeline("text-generation", model=llm_model, tokenizer=llm_tokenizer, 
 llm = HuggingFacePipeline(pipeline=hf_pipe)
 
 def extract_json_from_output(text: str) -> dict:
-    print(text)
     match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
     if not match:
         match = re.search(r"(\{.*\})", text, re.DOTALL)
@@ -37,8 +36,11 @@ def process_invoice(markdown_html: str, llm) -> dict:
 
     try:
         raw_table = identify_chain.invoke({"tables": table_str})
+        print("RAW TABLE", raw_table)
         parsed_table = extract_json_from_output(raw_table)
+        print("SUCCESSFULLY PARSED TABLE", parsed_table)
         table_result = TableResult(**parsed_table)
+        print("TABLE_RESULT", table_result)
     except Exception as e:
         raise ValueError(f"Failed to parse main table JSON output: {e}") from e
     finally:
@@ -52,8 +54,11 @@ def process_invoice(markdown_html: str, llm) -> dict:
     kv_chain = kv_prompt | llm
     try:
         raw_kv = kv_chain.invoke({"doc_body": remaining_html})
+        print("RAW KV", raw_kv)
         parsed_kv = extract_json_from_output(raw_kv)
+        print("SUCCESSFULLY PARSED KV", parsed_kv)
         kv_result = KVResult(**parsed_kv)
+        print("KV RESULT", kv_result)
     except Exception as e:
         raise ValueError(f"Failed to parse KV JSON output: {e}") from e
     finally:
@@ -67,4 +72,5 @@ def process_invoice(markdown_html: str, llm) -> dict:
         Summary=kv_result.Summary,
         Other_Important_Sections=kv_result.Other_Important_Sections,
     )
+    print("INVOICE DATA", invoice_data)
     return invoice_data.model_dump()
