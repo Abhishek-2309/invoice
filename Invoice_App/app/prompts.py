@@ -1,32 +1,21 @@
 identify_prompt = """
-You are an expert table reader from HTML.
-
-You are given multiple HTML tables extracted from an invoice. Read every table and its corresponding HTML code carefully.
-
+You are an expert table reader from HTML. You are given multiple HTML tables extracted from an invoice.
+Read every table and its corresponding html code, and find the main table along with the corresponding values in each row
 Identify the table containing line items (such as product/service, quantity, price, etc.).
-
-Your task is to extract:
-1. `main_table_index`: index of the main line item table
-2. `items`: each row of item data from that table (e.g., product, quantity, rate, etc.)
-3. `summary_row`: If the table has any footer/summary row data like total, tax, etc.
-
-Return **ONLY JSON** inside triple backticks like this:
-- Do NOT use markdown formatting or YAML
-- Do NOT include any explanation, comments, or notes
-- Your entire output must be a valid JSON object like:
-```json
+Items should only contain the itemized rows. For other rows that are towards the footer of table and don't fit items, include in summary_row
+Return strictly a JSON output with these fields alone in this format:
+```
 {{
-  "main_table_index": 0,
+  "main_table_index": <index>,
   "items": [
-    {{ "Sr. No.": "1", "Description": "Soap", "Rate": "50.00" }}
+    {{ "<column1>": "value", ... }},
+    ...
   ],
   "summary_row": {{
-    "Total": "1000.00",
-    "Tax": "180.00"
+    "<total_field1>": "value"
   }}
 }}
 ```
-
 Tables:
 {tables}
 """
