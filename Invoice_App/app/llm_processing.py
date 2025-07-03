@@ -12,7 +12,59 @@ def process_invoice_dir(markdown):
     llm_tokenizer = AutoTokenizer.from_pretrained(model_id)
     llm = pipeline("text-generation", model=llm_model, tokenizer=llm_tokenizer, max_new_tokens=4096, return_full_text=False)
     return process_invoice(markdown, llm)
+    
+def flatten_html_table_no_repeat(html: str):
+    from bs4 import BeautifulSoup
 
+    soup = BeautifulSoup(html, "html.parser")
+    table = soup.find("table")
+    for wm in table.find_all("watermark"):
+        wm.replace_with(f"[{wm.get_text(strip=True)}]")
+
+    table_matrix = []
+    rowspan_track = {}
+
+    rows = table.find_all("tr")
+    for row_idx, row in enumerate(rows):
+        cells = row.find_all(["td", "th"])
+        current_row = []
+        col_idx = 0
+        while col_idx < 100:
+            if (row_idx, col_idx) in rowspan_track:
+                remaining, value = rowspan_track[(row_idx, col_idx)]
+                current_row.append("")
+                if remaining > 1:
+                    rowspan_track[(row_idx + 1, col_idx)] = (remaining - 1, value)
+                del rowspan_track[(row_idx, col_idx)]
+                col_idx += 1
+                continue
+
+            if not cells:
+                break
+
+            cell = cells.pop(0)
+            text = cell.get_text(strip=True).replace("\n", " ")
+            rowspan = int(cell.get("rowspan", 1))
+            colspan = int(cell.get("colspan", 1))
+
+            for i in range(colspan):
+                current_row.append(text)
+
+            if rowspan > 1:
+                for i in range(colspan):
+                    rowspan_track[(row_idx + 1, col_idx + i)] = (rowspan - 1, text)
+
+            col_idx += colspan
+
+        table_matrix.append(current_row)
+
+    max_cols = max(len(row) for row in table_matrix)
+    padded = [row + [""] * (max_cols - len(row)) for row in table_matrix]
+
+    def fmt(row): return "| " + " | ".join(cell if cell else " " for cell in row) + " |"
+    sep = "| " + " | ".join(["---"] * max_cols) + " |"
+
+    return "\n".join([fmt(padded[0]), sep] + [fmt(r) for r in padded[1:]])
 
 def extract_json_from_output(text: str) -> dict:
     match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
@@ -35,14 +87,25 @@ def extract_tables(html: str):
 
 
 def process_invoice(markdown_html: str, llm: Any) -> dict:
-    tables, table_str, soup = extract_tables(markdown_html)
+    tables, _, soup = extract_tables(markdown_html)
 
     if not tables:
         raise ValueError("No <table> elements found in the document.")
-    
+
+    # Step 1: Flatten all tables to markdown and create identify prompt
+    table_markdowns = []
+    for i, table in enumerate(tables):
+        try:
+            flattened = flatten_html_table_no_repeat(str(table))
+            table_markdowns.append(f"[Table {i}]\n{flattened}")
+        except Exception as e:
+            table_markdowns.append(f"[Table {i}] (error flattening): {e}")
+    table_str = "\n\n".join(table_markdowns)
+
     full_identify_prompt = identify_prompt.format(tables=table_str)
     print(full_identify_prompt)
 
+    # Step 2: Run table identification prompt
     try:
         raw_table = llm(full_identify_prompt, do_sample=False)[0]["generated_text"]
         print("RAW TABLE:", raw_table)
@@ -52,15 +115,18 @@ def process_invoice(markdown_html: str, llm: Any) -> dict:
     except Exception as e:
         raise ValueError(f"Failed to parse main table JSON output: {e}") from e
 
-
-    # Remove the main table from the document before feeding to kv_prompt
+    # Step 3: Replace main table with Markdown + markers, don't remove
     main_idx = table_result.main_table_index
     try:
-        tables[main_idx].extract()
+        main_table_md = flatten_html_table_no_repeat(str(tables[main_idx]))
+        pre_tag = soup.new_tag("pre")
+        pre_tag.string = f"[Main Table Start]\n{main_table_md}\n[Main Table End]"
+        tables[main_idx].replace_with(pre_tag)
     except IndexError:
         raise ValueError(f"main_table_index {main_idx} out of range. Only found {len(tables)} tables.")
-    remaining_html = str(soup)
 
+    # Step 4: Continue with KV extraction on full modified HTML
+    remaining_html = str(soup)
     full_kv_prompt = kv_prompt.format(doc_body=remaining_html)
     print(full_kv_prompt)
 
@@ -72,7 +138,6 @@ def process_invoice(markdown_html: str, llm: Any) -> dict:
         kv_result = KVResult(**parsed_kv)
     except Exception as e:
         raise ValueError(f"Failed to parse KV JSON output: {e}") from e
-
 
     invoice_data = InvoiceSchema(
         Header=kv_result.Header,
