@@ -36,9 +36,8 @@ def process_invoice(markdown_html: str, llm) -> dict:
 
     if not tables:
         raise ValueError("No <table> elements found in the document.")
-
-
-    full_identify_prompt = identify_prompt.replace("{tables}", table_str)
+    
+    full_identify_prompt = identify_prompt_template.format(tables=table_str)
 
     try:
         raw_table = llm(full_identify_prompt, do_sample=False)[0]["generated_text"]
@@ -60,7 +59,7 @@ def process_invoice(markdown_html: str, llm) -> dict:
         raise ValueError(f"main_table_index {main_idx} out of range. Only found {len(tables)} tables.")
     remaining_html = str(soup)
 
-    full_kv_prompt = kv_prompt.replace("{doc_body}", remaining_html)
+    full_kv_prompt = kv_prompt_template.format(doc_body=remaining_html)
 
     try:
         raw_kv = llm(full_kv_prompt, do_sample=False)[0]["generated_text"]
