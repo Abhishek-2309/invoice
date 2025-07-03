@@ -38,6 +38,7 @@ def process_invoice(markdown_html: str, llm) -> dict:
         raise ValueError("No <table> elements found in the document.")
     
     full_identify_prompt = identify_prompt.format(tables=table_str)
+    print(full_identify_prompt)
 
     try:
         raw_table = llm(full_identify_prompt, do_sample=False)[0]["generated_text"]
@@ -60,6 +61,7 @@ def process_invoice(markdown_html: str, llm) -> dict:
     remaining_html = str(soup)
 
     full_kv_prompt = kv_prompt.format(doc_body=remaining_html)
+    print(full_kv_prompt)
 
     try:
         raw_kv = llm(full_kv_prompt, do_sample=False)[0]["generated_text"]
