@@ -25,7 +25,7 @@ async def upload_invoice(file: UploadFile = File(...)):
         print('Router-markdown:', markdown)
 
         # Process with your invoice LLM processor
-        structured_json = process_invoice(markdown)
+        structured_json = process_invoice_dir(markdown)
         print('Router-json:', structured_json)
 
         return structured_json
