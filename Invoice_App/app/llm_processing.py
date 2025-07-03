@@ -48,9 +48,7 @@ def process_invoice(markdown_html: str, llm) -> dict:
         table_result = TableResult(**parsed_table)
     except Exception as e:
         raise ValueError(f"Failed to parse main table JSON output: {e}") from e
-    finally:
-        torch.cuda.empty_cache()
-        gc.collect()
+
 
     # Remove the main table from the document before feeding to kv_prompt
     main_idx = table_result.main_table_index
@@ -71,9 +69,7 @@ def process_invoice(markdown_html: str, llm) -> dict:
         kv_result = KVResult(**parsed_kv)
     except Exception as e:
         raise ValueError(f"Failed to parse KV JSON output: {e}") from e
-    finally:
-        torch.cuda.empty_cache()
-        gc.collect()
+
 
     invoice_data = InvoiceSchema(
         Header=kv_result.Header,
