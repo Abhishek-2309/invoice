@@ -1,7 +1,7 @@
 import os, shutil
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
-from app.llm_processing import process_invoice, llm
+from app.llm_processing import process_invoice_dir
 
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -25,7 +25,7 @@ async def upload_invoice(file: UploadFile = File(...)):
         print('Router-markdown:', markdown)
 
         # Process with your invoice LLM processor
-        structured_json = process_invoice(markdown, llm)
+        structured_json = process_invoice(markdown)
         print('Router-json:', structured_json)
 
         return structured_json
