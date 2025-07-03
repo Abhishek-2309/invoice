@@ -1,6 +1,7 @@
 from PIL import Image
 from transformers import AutoModelForImageTextToText, AutoTokenizer, AutoProcessor
 import torch
+import re
 
 ocr_model_id = "nanonets/Nanonets-OCR-s"
 
