@@ -1,5 +1,12 @@
 identify_prompt = """
 You are an expert table reader. Read one or multiple of the following tables extracted from an invoice and given in markdown string format.
+Each table is given in a row by row format with table cells separated by '|'. An example is as follows:
+
+| SI No. | Description of Goods | Quantity | Rate | per | Amount |
+| 1 | Soyabean Oil 14.6kg Tin | 25 | 680.00 | tin | 17000.00 |
+. 
+.
+
 If only a single table is given, asssume it to be the main table
 Else, Read every table and its corresponding data, and find the main table along with the corresponding values in each row
 Identify the table containing line items (such as product/service, quantity, price, etc.).
