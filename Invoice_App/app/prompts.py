@@ -1,8 +1,4 @@
-from langchain_core.prompts import PromptTemplate
-
-identify_prompt = PromptTemplate(
-    input_variables=["tables"],
-    template="""
+identify_prompt = f"""
 You are an expert table reader from HTML.
 
 You are given multiple HTML tables extracted from an invoice. Read every table and its corresponding HTML code carefully.
@@ -12,7 +8,7 @@ Identify the table containing line items (such as product/service, quantity, pri
 Your task is to extract:
 1. `main_table_index`: index of the main line item table
 2. `items`: each row of item data from that table (e.g., product, quantity, rate, etc.)
-3. `summary_row`: footer/summary row data like total, tax, etc.
+3. `summary_row`: If the table has any footer/summary row data like total, tax, etc.
 
 Return **ONLY JSON** inside triple backticks like this:
 - Do NOT use markdown formatting or YAML
@@ -34,12 +30,9 @@ Return **ONLY JSON** inside triple backticks like this:
 Tables:
 {tables}
 """
-)
 
 
-kv_prompt = PromptTemplate(
-    input_variables=["doc_body"],
-    template="""
+kv_prompt = f"""
 You are given the body of an invoice (in HTML/Markdown) excluding the main line item table.
 
 Extract all invoice metadata as structured key-value pairs. An example JSON schema is as follows:
@@ -95,4 +88,3 @@ Return **ONLY JSON** inside triple backticks like this:
 Text:
 {doc_body}
 """
-)
