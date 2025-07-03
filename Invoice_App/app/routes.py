@@ -20,6 +20,6 @@ async def upload_invoice(file: UploadFile = File(...)):
         print('Router-markdown', markdown)
         structured_json = process_invoice(markdown, llm)
         print('Router-json', structured_json)
-        return JSONResponse(content=structured_json)
+        return structured_json
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Processing failed: {e}")
