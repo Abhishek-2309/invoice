@@ -1,4 +1,4 @@
-identify_prompt = f"""
+identify_prompt = """
 You are an expert table reader from HTML.
 
 You are given multiple HTML tables extracted from an invoice. Read every table and its corresponding HTML code carefully.
@@ -32,7 +32,7 @@ Tables:
 """
 
 
-kv_prompt = f"""
+kv_prompt = """
 You are given the body of an invoice (in HTML/Markdown) excluding the main line item table.
 
 Extract all invoice metadata as structured key-value pairs. An example JSON schema is as follows:
