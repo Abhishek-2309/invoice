@@ -1,3 +1,4 @@
+"""
 from PIL import Image
 from transformers import AutoModelForImageTextToText, AutoTokenizer, AutoProcessor
 import torch
@@ -32,3 +33,4 @@ def ocr_page_with_nanonets(image_path: str, max_new_tokens=15000) -> str:
     outputs = ocr_model.generate(**inputs, max_new_tokens=max_new_tokens, do_sample=False)
     markdown = ocr_processor.batch_decode(outputs, skip_special_tokens=True)[0]
     return strip_prompt_from_output(markdown)
+"""
