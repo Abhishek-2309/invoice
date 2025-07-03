@@ -1,6 +1,7 @@
 identify_prompt = """
-You are an expert table reader from HTML. You are given multiple HTML tables extracted from an invoice.
-Read every table and its corresponding html code, and find the main table along with the corresponding values in each row
+You are an expert table reader from HTML. You are given one or multiple HTML tables extracted from an invoice.
+If only a single table is given, asssume it to be the main table
+Else, Read every table and its corresponding html code, and find the main table along with the corresponding values in each row
 Identify the table containing line items (such as product/service, quantity, price, etc.).
 Items should only contain the itemized rows. For other rows that are towards the footer of table and don't fit items, include in summary_row
 Return strictly a JSON output with these fields alone in this format:
