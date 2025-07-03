@@ -3,12 +3,15 @@ from bs4 import BeautifulSoup
 from app.schemas import TableResult, KVResult, InvoiceSchema
 from app.prompts import identify_prompt, kv_prompt
 import json, re, torch, gc
+from typing import Any
 
-# Model setup
-model_id = "Qwen/Qwen2.5-7B"
-llm_model = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=torch.float16, device_map="auto")
-llm_tokenizer = AutoTokenizer.from_pretrained(model_id)
-llm = pipeline("text-generation", model=llm_model, tokenizer=llm_tokenizer, max_new_tokens=4096, return_full_text=False)
+def process_invoice_dir(markdown):
+    # Model setup
+    model_id = "Qwen/Qwen2.5-7B"
+    llm_model = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=torch.float16, device_map="auto")
+    llm_tokenizer = AutoTokenizer.from_pretrained(model_id)
+    llm = pipeline("text-generation", model=llm_model, tokenizer=llm_tokenizer, max_new_tokens=4096, return_full_text=False)
+    return process_invoice(markdown, llm)
 
 
 def extract_json_from_output(text: str) -> dict:
@@ -31,7 +34,7 @@ def extract_tables(html: str):
     return tables, table_str, soup
 
 
-def process_invoice(markdown_html: str, llm) -> dict:
+def process_invoice(markdown_html: str, llm: Any) -> dict:
     tables, table_str, soup = extract_tables(markdown_html)
 
     if not tables:
