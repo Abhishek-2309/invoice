@@ -8,6 +8,7 @@ import spacy
 from typing import Any
 from app.schemas import KVResult, InvoiceSchema
 from app.prompts import kv_prompt
+from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 
 # Load spaCy model once
 nlp = spacy.load("en_core_web_sm")
@@ -17,6 +18,14 @@ INVOICE_HEADER_KEYWORDS = [
     "item", "description", "product", "hsn", "code", "quantity", "qty", "rate",
     "unit price", "amount", "total", "value", "tax", "price", "serial", "no", "mrp"
 ]
+
+def process_invoice_dir(markdown):
+    # Model setup
+    model_id = "Qwen/Qwen2.5-7B"
+    llm_model = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=torch.float16, device_map="auto")
+    llm_tokenizer = AutoTokenizer.from_pretrained(model_id)
+    llm = pipeline("text-generation", model=llm_model, tokenizer=llm_tokenizer, max_new_tokens=4096, return_full_text=False)
+    return process_invoice(markdown, llm)
 
 
 def extract_json_from_output(text: str) -> dict:
@@ -228,15 +237,8 @@ def process_invoice(markdown_html: str, llm: Any) -> dict:
     rows = table_csv_to_dicts(csv_path, best_headers, skiprows=best_header_rows)
     item_rows, summary_rows = detect_summary_rows(rows)
 
-    # Replace table with markdown format in soup for LLM prompt
-    table_tags = soup.find_all("table")
-    for t in table_tags:
-        if str(t) in best_table:
-            md = flatten_html_table_smart_span(best_table)
-            pre = soup.new_tag("pre")
-            pre.string = f"[Main Table Start]\n{json.dumps(md)}\n[Main Table End]"
-            t.replace_with(pre)
-            break
+    for table_tag in soup.find_all("table"):
+        table_tag.decompose()
 
     # Use LLM for KV metadata
     full_kv_prompt = kv_prompt.format(doc_body=str(soup))
