@@ -21,7 +21,7 @@ async def upload_invoice(file: UploadFile = File(...)):
     try:
         markdown = ocr_page_with_nanonets(temp_path)
         print('Router-markdown', markdown)
-        structured_json = process_invoice_dir(markdown, llm)
+        structured_json = process_invoice_dir(markdown)
         print('Router-json', structured_json)
         return structured_json
     except Exception as e:
