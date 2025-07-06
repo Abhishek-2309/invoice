@@ -4,6 +4,7 @@ import re
 import os
 import csv
 import pandas as pd
+import torch
 import spacy
 from typing import Any
 from app.schemas import KVResult, InvoiceSchema
