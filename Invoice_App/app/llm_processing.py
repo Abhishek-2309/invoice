@@ -1,70 +1,23 @@
-from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 from bs4 import BeautifulSoup
-from app.schemas import TableResult, KVResult, InvoiceSchema
-from app.prompts import identify_prompt, kv_prompt
-import json, re, torch, gc
+import json
+import re
+import os
+import csv
+import pandas as pd
+import spacy
 from typing import Any
+from app.schemas import KVResult, InvoiceSchema
+from app.prompts import kv_prompt
 
-def process_invoice_dir(markdown):
-    # Model setup
-    model_id = "Qwen/Qwen2.5-7B"
-    llm_model = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=torch.float16, device_map="auto")
-    llm_tokenizer = AutoTokenizer.from_pretrained(model_id)
-    llm = pipeline("text-generation", model=llm_model, tokenizer=llm_tokenizer, max_new_tokens=4096, return_full_text=False)
-    return process_invoice(markdown, llm)
-    
-def flatten_html_table_no_repeat(html: str):
-    from bs4 import BeautifulSoup
+# Load spaCy model once
+nlp = spacy.load("en_core_web_sm")
 
-    soup = BeautifulSoup(html, "html.parser")
-    table = soup.find("table")
-    for wm in table.find_all("watermark"):
-        wm.replace_with(f"[{wm.get_text(strip=True)}]")
+# Canonical invoice headers
+INVOICE_HEADER_KEYWORDS = [
+    "item", "description", "product", "hsn", "code", "quantity", "qty", "rate",
+    "unit price", "amount", "total", "value", "tax", "price", "serial", "no", "mrp"
+]
 
-    table_matrix = []
-    rowspan_track = {}
-
-    rows = table.find_all("tr")
-    for row_idx, row in enumerate(rows):
-        cells = row.find_all(["td", "th"])
-        current_row = []
-        col_idx = 0
-        while col_idx < 100:
-            if (row_idx, col_idx) in rowspan_track:
-                remaining, value = rowspan_track[(row_idx, col_idx)]
-                current_row.append("")
-                if remaining > 1:
-                    rowspan_track[(row_idx + 1, col_idx)] = (remaining - 1, value)
-                del rowspan_track[(row_idx, col_idx)]
-                col_idx += 1
-                continue
-
-            if not cells:
-                break
-
-            cell = cells.pop(0)
-            text = cell.get_text(strip=True).replace("\n", " ")
-            rowspan = int(cell.get("rowspan", 1))
-            colspan = int(cell.get("colspan", 1))
-
-            for i in range(colspan):
-                current_row.append(text)
-
-            if rowspan > 1:
-                for i in range(colspan):
-                    rowspan_track[(row_idx + 1, col_idx + i)] = (rowspan - 1, text)
-
-            col_idx += colspan
-
-        table_matrix.append(current_row)
-
-    max_cols = max(len(row) for row in table_matrix)
-    padded = [row + [""] * (max_cols - len(row)) for row in table_matrix]
-
-    def fmt(row): return "| " + " | ".join(cell if cell else " " for cell in row) + " |"
-    sep = "| " + " | ".join(["---"] * max_cols) + " |"
-
-    return "\n".join([fmt(padded[0]), sep] + [fmt(r) for r in padded[1:]])
 
 def extract_json_from_output(text: str) -> dict:
     match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
@@ -78,73 +31,223 @@ def extract_json_from_output(text: str) -> dict:
     raise ValueError("No valid JSON object found in LLM output.")
 
 
-def extract_tables(html: str):
+def flatten_html_table_smart_span(html: str):
     soup = BeautifulSoup(html, "html.parser")
-    tables = soup.find_all("table")
-    table_str = "\n\n".join(f"[Table {i}]\n{str(t)}" for i, t in enumerate(tables))
-    print(table_str)
-    return tables, table_str, soup
+    table = soup.find("table")
+
+    for wm in table.find_all("watermark"):
+        wm.replace_with(f"[{wm.get_text(strip=True)}]")
+
+    table_matrix = []
+    cell_map = {}
+    rows = table.find_all("tr")
+    max_cols = 0
+
+    for row_idx, row in enumerate(rows):
+        cells = row.find_all(["td", "th"])
+        current_row = []
+        col_idx = 0
+
+        while col_idx < 100:
+            while (row_idx, col_idx) in cell_map:
+                current_row.append("")
+                col_idx += 1
+
+            if not cells:
+                break
+
+            cell = cells.pop(0)
+            text = cell.get_text(strip=True).replace("\n", " ")
+            rowspan = int(cell.get("rowspan", 1))
+            colspan = int(cell.get("colspan", 1))
+
+            current_row.append(text)
+
+            for i in range(1, colspan):
+                current_row.append("")
+
+            for i in range(1, rowspan):
+                for j in range(colspan):
+                    cell_map[(row_idx + i, col_idx + j)] = text
+
+            col_idx += colspan
+
+        table_matrix.append(current_row)
+        max_cols = max(max_cols, len(current_row))
+
+    for row in table_matrix:
+        while len(row) < max_cols:
+            row.append("")
+
+    return table_matrix
+
+
+def convert_html_to_csv(html: str, output_csv_path: str) -> str:
+    matrix = flatten_html_table_smart_span(html)
+    with open(output_csv_path, 'w', newline='', encoding='utf-8') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerows(matrix)
+    return output_csv_path
+
+
+def extract_and_merge_thead_headers_with_span(html: str):
+    from collections import defaultdict
+
+    soup = BeautifulSoup(html, "html.parser")
+    table = soup.find("table")
+    thead = table.find("thead") if table else None
+
+    if not thead:
+        return [], 0
+
+    rows = thead.find_all("tr")
+    header_matrix = []
+    col_occupancy = defaultdict(int)
+    total_cols = 0
+
+    for r_idx, row in enumerate(rows):
+        cells = row.find_all(["th", "td"])
+        cur_row = []
+        col_idx = 0
+
+        while len(cur_row) < total_cols or len(cur_row) < len(cells):
+            if col_occupancy[(r_idx, col_idx)]:
+                cur_row.append("")
+                col_idx += 1
+            else:
+                break
+
+        for cell in cells:
+            text = cell.get_text(strip=True)
+            colspan = int(cell.get("colspan", 1))
+            rowspan = int(cell.get("rowspan", 1))
+
+            for i in range(colspan):
+                cur_row.append(text)
+
+            for i in range(1, rowspan):
+                for j in range(colspan):
+                    col_occupancy[(r_idx + i, col_idx + j)] = 1
+
+            col_idx += colspan
+
+        total_cols = max(total_cols, len(cur_row))
+        header_matrix.append(cur_row)
+
+    for row in header_matrix:
+        while len(row) < total_cols:
+            row.append("")
+
+    final_headers = []
+    for col_cells in zip(*header_matrix):
+        merged = " ".join(cell for cell in col_cells if cell.strip())
+        final_headers.append(merged.strip())
+
+    return final_headers, len(header_matrix)
+
+
+def score_header_similarity(headers: list[str]) -> float:
+    if not headers:
+        return 0.0
+    invoice_keywords = [nlp(k.lower()) for k in INVOICE_HEADER_KEYWORDS]
+    score = 0
+    count = 0
+    for h in headers:
+        h_doc = nlp(h.lower())
+        best_sim = max((h_doc.similarity(k) for k in invoice_keywords), default=0)
+        score += best_sim
+        count += 1
+    return score / count if count else 0
+
+
+def table_csv_to_dicts(csv_path: str, headers: list[str], skiprows=0) -> list[dict]:
+    df = pd.read_csv(csv_path, header=None, skiprows=skiprows)
+    df.fillna(" ", inplace=True)
+
+    expected_cols = len(headers)
+    data_dicts = []
+
+    for _, row in df.iterrows():
+        row_values = row.tolist()
+        non_empty_cells = [str(cell).strip() for cell in row_values if str(cell).strip()]
+        if len(non_empty_cells) < max(2, expected_cols // 2):
+            continue
+        if len(non_empty_cells) <= 2 and expected_cols > 4:
+            continue
+        row_values = row_values[:expected_cols] + [""] * max(0, expected_cols - len(row_values))
+        row_dict = {header: str(row_values[i]).strip() for i, header in enumerate(headers)}
+        data_dicts.append(row_dict)
+
+    return data_dicts
+
+
+def detect_summary_rows(rows: list[dict], summary_keywords=None, min_keywords=1):
+    if summary_keywords is None:
+        summary_keywords = ["total", "subtotal", "tax", "vat", "gst", "amount", "grand", "net payable"]
+
+    item_rows = []
+    summary_rows = []
+
+    def row_contains_keyword(row: dict):
+        row_text = " ".join(str(v).lower() for v in row.values())
+        hits = [kw for kw in summary_keywords if kw in row_text]
+        return len(hits) >= min_keywords
+
+    for row in rows:
+        if row_contains_keyword(row):
+            summary_rows.append(row)
+        else:
+            item_rows.append(row)
+
+    return item_rows, summary_rows
 
 
 def process_invoice(markdown_html: str, llm: Any) -> dict:
-    tables, _, soup = extract_tables(markdown_html)
+    soup = BeautifulSoup(markdown_html, "html.parser")
+    html_tables = [str(tbl) for tbl in soup.find_all("table")]
 
-    if not tables:
-        raise ValueError("No <table> elements found in the document.")
+    best_score = -1
+    best_table = None
+    best_headers = []
+    best_header_rows = 0
 
-    # Step 1: Flatten all tables to markdown and create identify prompt
-    table_markdowns = []
-    for i, table in enumerate(tables):
-        try:
-            flattened = flatten_html_table_no_repeat(str(table))
-            table_markdowns.append(f"[Table {i}]\n{flattened}")
-        except Exception as e:
-            table_markdowns.append(f"[Table {i}] (error flattening): {e}")
-    table_str = "\n\n".join(table_markdowns)
+    for html_table in html_tables:
+        headers, header_row_count = extract_and_merge_thead_headers_with_span(html_table)
+        score = score_header_similarity(headers)
+        if score > best_score:
+            best_score = score
+            best_table = html_table
+            best_headers = headers
+            best_header_rows = header_row_count
 
-    full_identify_prompt = identify_prompt.format(tables=table_str)
-    print(full_identify_prompt)
+    if not best_table:
+        raise ValueError("No invoice-like table found.")
 
-    # Step 2: Run table identification prompt
-    try:
-        raw_table = llm(full_identify_prompt, do_sample=False)[0]["generated_text"]
-        print("RAW TABLE:", raw_table)
-        parsed_table = extract_json_from_output(raw_table)
-        print("PARSED TABLE:", parsed_table)
-        table_result = TableResult(**parsed_table)
-    except Exception as e:
-        raise ValueError(f"Failed to parse main table JSON output: {e}") from e
+    csv_path = "main_invoice_table.csv"
+    convert_html_to_csv(best_table, csv_path)
+    rows = table_csv_to_dicts(csv_path, best_headers, skiprows=best_header_rows)
+    item_rows, summary_rows = detect_summary_rows(rows)
 
-    # Step 3: Replace main table with Markdown + markers, don't remove
-    main_idx = table_result.main_table_index
-    try:
-        main_table_md = flatten_html_table_no_repeat(str(tables[main_idx]))
-        pre_tag = soup.new_tag("pre")
-        pre_tag.string = f"[Main Table Start]\n{main_table_md}\n[Main Table End]"
-        tables[main_idx].replace_with(pre_tag)
-    except IndexError:
-        raise ValueError(f"main_table_index {main_idx} out of range. Only found {len(tables)} tables.")
+    # Replace table with markdown format in soup for LLM prompt
+    table_tags = soup.find_all("table")
+    for t in table_tags:
+        if str(t) in best_table:
+            md = flatten_html_table_smart_span(best_table)
+            pre = soup.new_tag("pre")
+            pre.string = f"[Main Table Start]\n{json.dumps(md)}\n[Main Table End]"
+            t.replace_with(pre)
+            break
 
-    # Step 4: Continue with KV extraction on full modified HTML
-    remaining_html = str(soup)
-    full_kv_prompt = kv_prompt.format(doc_body=remaining_html)
-    print(full_kv_prompt)
+    # Use LLM for KV metadata
+    full_kv_prompt = kv_prompt.format(doc_body=str(soup))
+    raw_kv = llm(full_kv_prompt, do_sample=False)[0]["generated_text"]
+    parsed_kv = extract_json_from_output(raw_kv)
+    kv_result = KVResult(**parsed_kv)
 
-    try:
-        raw_kv = llm(full_kv_prompt, do_sample=False)[0]["generated_text"]
-        print("RAW KV:", raw_kv)
-        parsed_kv = extract_json_from_output(raw_kv)
-        print("PARSED KV:", parsed_kv)
-        kv_result = KVResult(**parsed_kv)
-    except Exception as e:
-        raise ValueError(f"Failed to parse KV JSON output: {e}") from e
-
-    invoice_data = InvoiceSchema(
+    return InvoiceSchema(
         Header=kv_result.Header,
-        Items=table_result.items,
+        Items=item_rows,
         Payment_Terms=kv_result.Payment_Terms,
-        Summary=kv_result.Summary,
+        Summary=summary_rows,
         Other_Important_Sections=kv_result.Other_Important_Sections,
-    )
-    print("INVOICE DATA:", invoice_data)
-    return invoice_data.model_dump()
+    ).model_dump()
