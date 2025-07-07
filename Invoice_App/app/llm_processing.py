@@ -259,7 +259,7 @@ def detect_summary_rows(
 ):
     if summary_keywords is None:
         summary_keywords = [
-            "total", "subtotal", "tax", "vat", "gst", "amount",
+            "total", "subtotal", "tax", "vat", "amount",
             "grand", "net payable", "payable", "balance"
         ]
 
