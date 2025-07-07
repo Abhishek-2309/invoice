@@ -245,7 +245,9 @@ def process_invoice(markdown_html: str, llm: Any) -> dict:
     # Use LLM for KV metadata
     full_kv_prompt = kv_prompt.format(doc_body=str(soup))
     raw_kv = llm(full_kv_prompt, do_sample=False)[0]["generated_text"]
+    print(raw_kv)
     parsed_kv = extract_json_from_output(raw_kv)
+    print(parsed_kv)
     kv_result = KVResult(**parsed_kv)
 
     return InvoiceSchema(
