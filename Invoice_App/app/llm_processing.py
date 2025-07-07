@@ -12,12 +12,17 @@ from app.prompts import kv_prompt
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 
 # Load spaCy model once
-nlp = spacy.load("en_core_web_sm")
+nlp = spacy.load("en_core_web_md")
 
-# Canonical invoice headers
 INVOICE_HEADER_KEYWORDS = [
-    "item", "description", "product", "hsn", "code", "quantity", "qty", "rate",
-    "unit price", "amount", "total", "value", "tax", "price", "serial", "no", "mrp"
+    "item", "product", "description", "details", "part number", "sku", "goods", "service",
+    "quantity", "qty", "unit", "units", "uom", "nos", "pcs", "pieces", "kg", "litre", "liter",
+    "rate", "unit price", "price", "cost", "mrp", "list price", "selling price",
+    "tax", "igst", "cgst", "sgst", "vat", "gst", "cess", "tax amount",
+    "total", "total amount", "net amount", "gross amount", "amount", "value", "line total",
+    "discount", "discount%", "rebate", "adjustment", "charges", "other charges",
+    "hsn", "sac", "code", "hsn code", "sac code", "tax code",
+    "serial", "no", "sr. no", "sl no", "line no", "remarks", "batch no", "expiry date"
 ]
 
 def process_invoice_dir(markdown):
@@ -156,18 +161,24 @@ def extract_and_merge_thead_headers_with_span(html: str):
     return final_headers, len(header_matrix)
 
 
-def score_header_similarity(headers: list[str]) -> float:
+def normalize(text: str) -> str:
+    return re.sub(r"[^\w\s]", "", text.lower().strip())
+
+invoice_keywords = [nlp(normalize(k)) for k in INVOICE_HEADER_KEYWORDS]
+def score_header_similarity(headers: list[str], invoice_keywords=normalized_invoice_keywords) -> float:
     if not headers:
         return 0.0
-    invoice_keywords = [nlp(k.lower()) for k in INVOICE_HEADER_KEYWORDS]
-    score = 0
+    score = 0.0
     count = 0
     for h in headers:
-        h_doc = nlp(h.lower())
+        norm_h = normalize(h)
+        h_doc = nlp(norm_h)
         best_sim = max((h_doc.similarity(k) for k in invoice_keywords), default=0)
         score += best_sim
         count += 1
-    return score / count if count else 0
+
+    return score / count if count else 0.0
+
 
 
 def table_csv_to_dicts(csv_path: str, headers: list[str], skiprows=0) -> list[dict]:
@@ -223,7 +234,7 @@ def process_invoice(markdown_html: str, llm: Any) -> dict:
 
     for html_table in html_tables:
         headers, header_row_count = extract_and_merge_thead_headers_with_span(html_table)
-        score = score_header_similarity(headers)
+        score = score_header_similarity(headers, invoice_keywords)
         if score > best_score:
             best_score = score
             best_table = html_table
