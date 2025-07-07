@@ -407,4 +407,4 @@ def process_invoice(markdown_html: str, llm: Any) -> dict:
         Summary=kv_result.Summary,
         Other_Important_Sections=kv_result.Other_Important_Sections,
     ).model_dump()
-    """
+    
