@@ -272,7 +272,19 @@ def process_invoice(markdown_html: str, llm: Any) -> dict:
     item_rows, summary_rows = detect_summary_rows(rows)
 
     for table_tag in soup.find_all("table"):
-        table_tag.decompose()
+        if str(table_tag) == best_table:
+            table_tag.decompose()  # remove main table entirely
+        else:
+            plain_text = []
+            for row in table_tag.find_all("tr"):
+                words = [cell.get_text(strip=True) for cell in row.find_all(["td", "th"])]
+                if words:
+                    plain_text.append(" ".join(words))
+            # Replace table with text
+            replacement = soup.new_tag("p")
+            replacement.string = "\n".join(plain_text)
+            table_tag.replace_with(replacement)
+
 
     print(str(soup))
     # Use LLM for KV metadata
