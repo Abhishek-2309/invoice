@@ -32,9 +32,7 @@ Tables:
 kv_prompt = """
 You are given the body of an invoice (in Markdown) except the main line table.
 
-Read the entire markdown body and extract all the following details *only if they are explicitly present in the text*. If any field is not found, leave it empty. Do NOT generate or guess values.
-
-All extracted values must be verbatim from the markdown. Avoid adding, rephrasing, or expanding information. This is a strict extraction task.
+Read the entire markdown body and extract all the following details. If any field is not found, leave it empty.
 
 Here is the desired JSON schema:
 ~~~json
@@ -78,10 +76,6 @@ Here is the desired JSON schema:
 }}
 ~~~
 
-**Important Rules**:
-- Only include information that is explicitly written in the markdown.
-- Do not fabricate generic terms or notes.
-- All values must be **strings with no newlines**.
 - Return ONLY JSON inside triple backticks like this:
 ```json
 {{
