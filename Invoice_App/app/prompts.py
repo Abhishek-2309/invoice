@@ -30,6 +30,18 @@ Tables:
 
 
 kv_prompt = """
+Read the entire document and extract all possible key value pairs present in it
+Finallyy, Return them in ONLY JSON inside triple backticks like this:
+```json
+{{
+  "Header": ...,
+  ...
+}}
+Text:
+{doc_body}
+"""
+
+kv2_prompt = """
 You are given the body of an invoice (in Markdown) except the main line table.
 
 Read the entire markdown body and extract all the following details. If any field is not found, leave it empty.
