@@ -241,6 +241,7 @@ def process_invoice(markdown_html: str, llm: Any) -> dict:
     for table_tag in soup.find_all("table"):
         table_tag.decompose()
 
+    print(str(soup))
     # Use LLM for KV metadata
     full_kv_prompt = kv_prompt.format(doc_body=str(soup))
     raw_kv = llm(full_kv_prompt, do_sample=False)[0]["generated_text"]
@@ -251,6 +252,6 @@ def process_invoice(markdown_html: str, llm: Any) -> dict:
         Header=kv_result.Header,
         Items=item_rows,
         Payment_Terms=kv_result.Payment_Terms,
-        Summary=summary_rows,
+        Summary=kv_result.Summary,
         Other_Important_Sections=kv_result.Other_Important_Sections,
     ).model_dump()
