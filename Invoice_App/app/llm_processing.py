@@ -165,7 +165,7 @@ def normalize(text: str) -> str:
     return re.sub(r"[^\w\s]", "", text.lower().strip())
 
 invoice_keywords = [nlp(normalize(k)) for k in INVOICE_HEADER_KEYWORDS]
-def score_header_similarity(headers: list[str], invoice_keywords=normalized_invoice_keywords) -> float:
+def score_header_similarity(headers: list[str], invoice_keywords=invoice_keywords) -> float:
     if not headers:
         return 0.0
     score = 0.0
