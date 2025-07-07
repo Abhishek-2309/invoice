@@ -321,6 +321,12 @@ def extract_best_table_and_headers(html_tables: list[str]) -> tuple[str, list[st
 
     return best_table, best_headers, best_header_row_index # +1 to skip header
 
+def strip_prompt_from_output(text: str) -> str:
+    split_pattern = r"(?:^|\n)assistant\s*\n"
+    parts = re.split(split_pattern, text, maxsplit=1)
+    if len(parts) == 2:
+        return parts[1].strip()
+    return text.strip()  # fallback: return everything
 
 def extract_invoice_kv_fields(markdown: str, max_new_tokens=2048) -> dict:
     filled_prompt = kv_prompt.replace("{doc_body}", markdown)
@@ -335,8 +341,8 @@ def extract_invoice_kv_fields(markdown: str, max_new_tokens=2048) -> dict:
 
     outputs = ocr_model.generate(**inputs, max_new_tokens=max_new_tokens, do_sample=False)
     result = ocr_processor.batch_decode(outputs, skip_special_tokens=True)[0]
-
-    return extract_json_from_output(result)
+    markdown_res = strip_prompt_from_output(result)
+    return extract_json_from_output(markdown_res)
 
 def process_invoice(markdown_html: str, llm: Any) -> dict:
     soup = BeautifulSoup(markdown_html, "html.parser")
