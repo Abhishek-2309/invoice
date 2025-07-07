@@ -11,6 +11,7 @@ from typing import Any
 from sklearn.metrics.pairwise import cosine_similarity
 from app.schemas import KVResult, InvoiceSchema
 from app.prompts import kv_prompt
+from app.ocr import ocr_model, ocr_processor
 #from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 
 # Load spaCy model once
@@ -321,6 +322,22 @@ def extract_best_table_and_headers(html_tables: list[str]) -> tuple[str, list[st
     return best_table, best_headers, best_header_row_index # +1 to skip header
 
 
+def extract_invoice_kv_fields(markdown: str, max_new_tokens=2048) -> dict:
+    filled_prompt = kv_prompt.replace("{doc_body}", markdown)
+
+    messages = [
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": filled_prompt}
+    ]
+
+    prompt_text = ocr_processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+    inputs = ocr_processor(text=prompt_text, return_tensors="pt").to(ocr_model.device)
+
+    outputs = ocr_model.generate(**inputs, max_new_tokens=max_new_tokens, do_sample=False)
+    result = ocr_processor.batch_decode(outputs, skip_special_tokens=True)[0]
+
+    return extract_json_from_output(result)
+
 def process_invoice(markdown_html: str, llm: Any) -> dict:
     soup = BeautifulSoup(markdown_html, "html.parser")
     html_tables = [str(tbl) for tbl in soup.find_all("table")]
@@ -339,6 +356,7 @@ def process_invoice(markdown_html: str, llm: Any) -> dict:
     rows = table_csv_to_dicts(csv_path, best_headers, skiprows=best_header_rows)
     item_rows, summary_rows = detect_summary_rows(rows)
 
+    """
     for table_tag in soup.find_all("table"):
         if str(table_tag) == best_table:
             # Prepare summary rows as plain text
@@ -371,13 +389,16 @@ def process_invoice(markdown_html: str, llm: Any) -> dict:
 
     return str(soup)
     """
+    kv_data = extract_invoice_kv_fields(markdown_html)
+    """
     # Use LLM for KV metadata
     full_kv_prompt = kv_prompt.format(doc_body=str(soup))
     raw_kv = llm(full_kv_prompt, do_sample=False)[0]["generated_text"]
     print(raw_kv)
     parsed_kv = extract_json_from_output(raw_kv)
     print(parsed_kv)
-    kv_result = KVResult(**parsed_kv)
+    """
+    kv_result = KVResult(**kv_data)
     
     return InvoiceSchema(
         Header=kv_result.Header,
