@@ -9,7 +9,7 @@ import spacy
 from typing import Any
 from app.schemas import KVResult, InvoiceSchema
 from app.prompts import kv_prompt
-from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
+#from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 
 # Load spaCy model once
 nlp = spacy.load("en_core_web_md")
@@ -26,10 +26,13 @@ INVOICE_HEADER_KEYWORDS = [
 
 def process_invoice_dir(markdown):
     # Model setup
+    """
     model_id = "Qwen/Qwen2.5-7B"
     llm_model = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=torch.float16, device_map="auto")
     llm_tokenizer = AutoTokenizer.from_pretrained(model_id)
     llm = pipeline("text-generation", model=llm_model, tokenizer=llm_tokenizer, max_new_tokens=4096, return_full_text=False)
+    """
+    llm = None
     return process_invoice(markdown, llm)
 
 
@@ -290,6 +293,17 @@ def process_invoice(markdown_html: str, llm: Any) -> dict:
     for table_tag in soup.find_all("table"):
         if str(table_tag) == best_table:
             table_tag.decompose()  # remove main table entirely
+            if summary_rows:
+                summary_text = []
+                for row in summary_rows:
+                    words = [cell.get_text(strip=True) for cell in row.find_all(["td", "th"])]
+                    if words:
+                        summary_text.append(" ".join(words))
+    
+                summary_p = soup.new_tag("p")
+                summary_p.string = "\n".join(summary_text)
+    
+                soup.append(summary_p)
         else:
             plain_text = []
             for row in table_tag.find_all("tr"):
@@ -303,6 +317,8 @@ def process_invoice(markdown_html: str, llm: Any) -> dict:
 
 
     print(str(soup))
+    return str(soup)
+    """
     # Use LLM for KV metadata
     full_kv_prompt = kv_prompt.format(doc_body=str(soup))
     raw_kv = llm(full_kv_prompt, do_sample=False)[0]["generated_text"]
@@ -310,7 +326,7 @@ def process_invoice(markdown_html: str, llm: Any) -> dict:
     parsed_kv = extract_json_from_output(raw_kv)
     print(parsed_kv)
     kv_result = KVResult(**parsed_kv)
-
+    
     return InvoiceSchema(
         Header=kv_result.Header,
         Items=item_rows,
@@ -318,3 +334,4 @@ def process_invoice(markdown_html: str, llm: Any) -> dict:
         Summary=kv_result.Summary,
         Other_Important_Sections=kv_result.Other_Important_Sections,
     ).model_dump()
+    """
