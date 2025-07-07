@@ -7,6 +7,7 @@ import pandas as pd
 import torch
 import spacy
 from typing import Any
+from sklearn.metrics.pairwise import cosine_similarity
 from app.schemas import KVResult, InvoiceSchema
 from app.prompts import kv_prompt
 #from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
