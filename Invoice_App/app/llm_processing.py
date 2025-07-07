@@ -292,28 +292,32 @@ def process_invoice(markdown_html: str, llm: Any) -> dict:
 
     for table_tag in soup.find_all("table"):
         if str(table_tag) == best_table:
-            table_tag.decompose() 
-            if summary_rows:
-                summary_text = []
-                for row in summary_rows:
-                    words = [str(v).strip() for v in row.values() if str(v).strip()]
-                    if words:
-                        summary_text.append(" ".join(words))
+            # Prepare summary rows as plain text
+            summary_text = []
+            for row in summary_rows:
+                # row is a dict
+                words = [str(v).strip() for v in row.values()]
+                summary_text.append(" ".join(words).strip())
     
-                summary_p = soup.new_tag("p")
-                summary_p.string = "\n".join(summary_text)
+            # Create NavigableString to inject in place of main table
+            summary_string = soup.new_string("\n".join(summary_text))
     
-                # Add summary text back into soup
-                soup.append(summary_p)
+            # Insert text *after* the table, then remove table
+            table_tag.insert_after(summary_string)
+            table_tag.decompose()
+    
         else:
+            # Convert other tables to text, even if some cells are empty
             plain_text = []
             for row in table_tag.find_all("tr"):
                 words = [cell.get_text(strip=True) for cell in row.find_all(["td", "th"])]
-                if words:
-                    plain_text.append(" ".join(words))
-            replacement = soup.new_tag("p")
-            replacement.string = "\n".join(plain_text)
-            table_tag.replace_with(replacement)
+                # Even if row has empty cells, write the row
+                plain_text.append(" ".join(words))
+    
+            # Create plain string (no <p>)
+            replacement_string = soup.new_string("\n".join(plain_text))
+            table_tag.replace_with(replacement_string)
+
 
 
 
