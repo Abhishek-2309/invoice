@@ -222,24 +222,46 @@ def detect_summary_rows(rows: list[dict], summary_keywords=None, min_keywords=1)
 
     return item_rows, summary_rows
 
+def extract_best_table_and_headers(html_tables: list[str]) -> tuple[str, list[str], int]:
+    best_score = -1
+    best_table = None
+    best_headers = []
+    best_header_row_index = 0
+
+    for html_table in html_tables:
+        soup = BeautifulSoup(html_table, "html.parser")
+        table = soup.find("table")
+        if not table:
+            continue
+
+        rows = table.find_all("tr")
+        for i, row in enumerate(rows):
+            cells = row.find_all(["th", "td"])
+            candidate_headers = [cell.get_text(strip=True) for cell in cells]
+
+            # Skip if too few cells to be a header
+            if len(candidate_headers) < 2:
+                continue
+
+            score = score_header_similarity(candidate_headers)
+            if score > best_score:
+                best_score = score
+                best_table = html_table
+                best_headers = candidate_headers
+                best_header_row_index = i
+
+    return best_table, best_headers, best_header_row_index + 1  # +1 to skip header
+
 
 def process_invoice(markdown_html: str, llm: Any) -> dict:
     soup = BeautifulSoup(markdown_html, "html.parser")
     html_tables = [str(tbl) for tbl in soup.find_all("table")]
 
-    best_score = -1
     best_table = None
     best_headers = []
     best_header_rows = 0
 
-    for html_table in html_tables:
-        headers, header_row_count = extract_and_merge_thead_headers_with_span(html_table)
-        score = score_header_similarity(headers, invoice_keywords)
-        if score > best_score:
-            best_score = score
-            best_table = html_table
-            best_headers = headers
-            best_header_rows = header_row_count
+    best_table, best_headers, best_header_rows = extract_best_table_and_headers(html_tables)
 
     if not best_table:
         raise ValueError("No invoice-like table found.")
