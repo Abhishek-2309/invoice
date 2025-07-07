@@ -292,17 +292,18 @@ def process_invoice(markdown_html: str, llm: Any) -> dict:
 
     for table_tag in soup.find_all("table"):
         if str(table_tag) == best_table:
-            table_tag.decompose()  # remove main table entirely
+            table_tag.decompose() 
             if summary_rows:
                 summary_text = []
                 for row in summary_rows:
-                    words = [cell.get_text(strip=True) for cell in row.find_all(["td", "th"])]
+                    words = [str(v).strip() for v in row.values() if str(v).strip()]
                     if words:
                         summary_text.append(" ".join(words))
     
                 summary_p = soup.new_tag("p")
                 summary_p.string = "\n".join(summary_text)
     
+                # Add summary text back into soup
                 soup.append(summary_p)
         else:
             plain_text = []
@@ -310,10 +311,10 @@ def process_invoice(markdown_html: str, llm: Any) -> dict:
                 words = [cell.get_text(strip=True) for cell in row.find_all(["td", "th"])]
                 if words:
                     plain_text.append(" ".join(words))
-            # Replace table with text
             replacement = soup.new_tag("p")
             replacement.string = "\n".join(plain_text)
             table_tag.replace_with(replacement)
+
 
 
     print(str(soup))
