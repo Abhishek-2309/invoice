@@ -166,22 +166,67 @@ def extract_and_merge_thead_headers_with_span(html: str):
 def normalize(text: str) -> str:
     return re.sub(r"[^\w\s]", "", text.lower().strip())
 
-invoice_keywords = [nlp(normalize(k)) for k in INVOICE_HEADER_KEYWORDS]
-def score_header_similarity(headers: list[str], invoice_keywords=invoice_keywords) -> float:
-    if not headers:
+REFERENCE_HEADER = ["product", "description", "qty", "unit price", "amount", "tax"]
+def score_header_similarity(headers: list[str]) -> int:
+    headers = [h.lower() for h in headers]
+
+    # Define weighted keyword groups
+    product_keywords = {"item", "product", "description", "details", "part number", "sku", "goods", "service", "article", "line item"}
+    quantity_keywords = {"quantity", "qty", "unit", "units", "uom", "nos", "pcs", "pieces", "kg", "litre", "liter"}
+    price_keywords = {"rate", "unit price", "price", "cost", "mrp", "list price", "selling price"}
+    amount_keywords = {"total", "total amount", "net amount", "gross amount", "amount", "value", "line total"}
+    discount_keywords = {"discount", "discount%", "rebate", "adjustment", "charges", "other charges"}
+    tax_keywords = {"hsn", "sac", "code", "hsn code", "sac code"}
+    misc_keywords = {"serial", "no", "sr. no", "sl no", "line no", "remarks", "batch no", "expiry date"}
+
+    # Penalize if any of these are found
+    payment_only_keywords = {"voucher", "payment", "received", "mode", "reference", "receipt"}
+
+    score = 0
+
+    for header in headers:
+        if any(kw in header for kw in product_keywords):
+            score += 5
+        if any(kw in header for kw in quantity_keywords):
+            score += 4
+        if any(kw in header for kw in price_keywords):
+            score += 4
+        if any(kw in header for kw in amount_keywords):
+            score += 2
+        if any(kw in header for kw in discount_keywords):
+            score += 1
+        if any(kw in header for kw in tax_keywords):
+            score += 3
+        if any(kw in header for kw in misc_keywords):
+            score += 1
+        if any(kw in header for kw in payment_only_keywords):
+            score -= 4  # Penalize voucher/payment tables
+
+    # Extra boost if multiple major groups are matched
+    groups_matched = sum([
+        any(kw in h for h in headers for kw in g)
+        for g in [product_keywords, quantity_keywords, price_keywords, amount_keywords]
+    ])
+    if groups_matched >= 2:
+        score += 6
+    elif groups_matched == 1:
+        score += 2
+
+    return score
+
+def score_with_spacy(headers: list[str]) -> float:
+    header_vecs = [nlp(h).vector for h in headers if h.strip()]
+    ref_vecs = [nlp(ref).vector for ref in REFERENCE_HEADER]
+
+    if not header_vecs:
         return 0.0
-    score = 0.0
-    count = 0
-    for h in headers:
-        norm_h = normalize(h)
-        h_doc = nlp(norm_h)
-        best_sim = max((h_doc.similarity(k) for k in invoice_keywords), default=0)
-        score += best_sim
-        count += 1
 
-    return score / count if count else 0.0
+    similarities = []
+    for hv in header_vecs:
+        row_sim = [cosine_similarity([hv], [rv])[0][0] for rv in ref_vecs]
+        similarities.append(max(row_sim))  # take max sim to any ref
 
-
+    return float(np.mean(similarities))
 
 def table_csv_to_dicts(csv_path: str, headers: list[str], skiprows=0) -> list[dict]:
     df = pd.read_csv(csv_path, header=None, skiprows=skiprows)
@@ -262,9 +307,11 @@ def extract_best_table_and_headers(html_tables: list[str]) -> tuple[str, list[st
             if len(candidate_headers) < 2:
                 continue
 
-            score = score_header_similarity(candidate_headers)
-            if score > best_score:
-                best_score = score
+            keyword_score = score_header_similarity(candidate_headers)
+            semantic_score = score_with_spacy(candidate_headers)
+            combined_score = 0.6 * keyword_score + 0.4 * semantic_score
+            if combined_score > best_score:
+                best_score = combined_score
                 best_table = html_table
                 best_headers = candidate_headers
                 best_header_row_index = i
