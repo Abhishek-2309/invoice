@@ -40,6 +40,7 @@ def process_invoice_dir(markdown):
 
 
 def extract_json_from_output(text: str) -> dict:
+    print(text)
     match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
     if not match:
         match = re.search(r"(\{.*\})", text, re.DOTALL)
@@ -398,6 +399,7 @@ def process_invoice(markdown_html: str, llm: Any) -> dict:
 
     print(str(soup))
     kv_data = extract_invoice_kv_fields(str(soup))
+    return kv_data
     """
     # Use LLM for KV metadata
     full_kv_prompt = kv_prompt.format(doc_body=str(soup))
@@ -405,7 +407,8 @@ def process_invoice(markdown_html: str, llm: Any) -> dict:
     print(raw_kv)
     parsed_kv = extract_json_from_output(raw_kv)
     print(parsed_kv)
-    """
+    
+    
     kv_result = KVResult(**kv_data)
     
     return InvoiceSchema(
@@ -415,4 +418,5 @@ def process_invoice(markdown_html: str, llm: Any) -> dict:
         Summary=kv_result.Summary,
         Other_Important_Sections=kv_result.Other_Important_Sections,
     ).model_dump()
+    """
     
