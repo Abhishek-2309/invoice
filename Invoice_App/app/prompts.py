@@ -30,9 +30,8 @@ Tables:
 
 
 kv_prompt = """
-You are given the body of an invoice (in Markdown) 
-[Main Table Start] and [Main Table End] mark the start and end of the main line table
-Read the entire markdown body and extract all the following details except the line items in the main line table.
+You are given the body of an invoice (in Markdown) except the main line table.
+Read the entire markdown body and extract all the following details, if any field is not found, leave it empty.
 Extract all invoice metadata as structured key-value pairs. An example JSON schema is as follows:
 ~~~json
 {{
@@ -74,9 +73,7 @@ Extract all invoice metadata as structured key-value pairs. An example JSON sche
   }}
 }}
 ~~~
-
 Make sure all values are strings and do not contain newlines.
-Extract only from document contents, If relevant values are not found, leave empty.
 Return **ONLY JSON** inside triple backticks like this:
 ```json
 {{
