@@ -357,18 +357,16 @@ def process_invoice(markdown_html: str, llm: Any) -> dict:
             # Convert other tables to text, even if some cells are empty
             plain_text = []
             for row in table_tag.find_all("tr"):
-                words = [cell.get_text(strip=True) for cell in row.find_all(["td", "th"])]
-                # Even if row has empty cells, write the row
-                plain_text.append(" ".join(words))
-    
-            # Create plain string (no <p>)
+                row_cells = []
+                for cell in row.find_all(["td", "th"]):
+                    text = cell.get_text(strip=True)
+                    colspan = int(cell.get("colspan", 1))
+                    row_cells.extend([text] + [""] * (colspan - 1))
+                plain_text.append(",".join(row_cells))
+
             replacement_string = soup.new_string("\n".join(plain_text))
             table_tag.replace_with(replacement_string)
 
-
-
-
-    print(str(soup))
     return str(soup)
     """
     # Use LLM for KV metadata
