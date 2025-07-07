@@ -328,7 +328,7 @@ def strip_prompt_from_output(text: str) -> str:
         return parts[1].strip()
     return text.strip()  # fallback: return everything
 
-def extract_invoice_kv_fields(markdown: str, max_new_tokens=2048) -> dict:
+def extract_invoice_kv_fields(markdown: str, max_new_tokens=4096) -> dict:
     filled_prompt = kv_prompt.replace("{doc_body}", markdown)
 
     messages = [
