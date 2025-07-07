@@ -15,13 +15,12 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 nlp = spacy.load("en_core_web_md")
 
 INVOICE_HEADER_KEYWORDS = [
-    "item", "product", "description", "details", "part number", "sku", "goods", "service",
+    "item", "product", "description", "details", "part number", "sku", "goods", "service", "article", "line item",
     "quantity", "qty", "unit", "units", "uom", "nos", "pcs", "pieces", "kg", "litre", "liter",
     "rate", "unit price", "price", "cost", "mrp", "list price", "selling price",
-    "tax", "igst", "cgst", "sgst", "vat", "gst", "cess", "tax amount",
     "total", "total amount", "net amount", "gross amount", "amount", "value", "line total",
     "discount", "discount%", "rebate", "adjustment", "charges", "other charges",
-    "hsn", "sac", "code", "hsn code", "sac code", "tax code",
+    "hsn", "sac", "code", "hsn code", "sac code",
     "serial", "no", "sr. no", "sl no", "line no", "remarks", "batch no", "expiry date"
 ]
 
