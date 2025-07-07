@@ -202,25 +202,42 @@ def table_csv_to_dicts(csv_path: str, headers: list[str], skiprows=0) -> list[di
     return data_dicts
 
 
-def detect_summary_rows(rows: list[dict], summary_keywords=None, min_keywords=1):
+def detect_summary_rows(
+    rows: list[dict],
+    summary_keywords=None,
+    summary_region_ratio: float = 0.3,
+    min_filled_threshold: float = 0.4,
+):
     if summary_keywords is None:
-        summary_keywords = ["total", "subtotal", "tax", "vat", "gst", "amount", "grand", "net payable"]
+        summary_keywords = [
+            "total", "subtotal", "tax", "vat", "gst", "amount",
+            "grand", "net payable", "payable", "balance"
+        ]
 
     item_rows = []
     summary_rows = []
+    total_rows = len(rows)
 
-    def row_contains_keyword(row: dict):
+    def is_summary_row(row: dict, idx: int) -> bool:
+        is_bottom_section = idx >= int((1 - summary_region_ratio) * total_rows)
+
         row_text = " ".join(str(v).lower() for v in row.values())
-        hits = [kw for kw in summary_keywords if kw in row_text]
-        return len(hits) >= min_keywords
+        keyword_match = any(kw in row_text for kw in summary_keywords)
 
-    for row in rows:
-        if row_contains_keyword(row):
+        total_cells = len(row)
+        non_empty_cells = sum(1 for v in row.values() if str(v).strip())
+        fill_ratio = non_empty_cells / total_cells if total_cells > 0 else 0
+
+        return is_bottom_section and (keyword_match or fill_ratio < min_filled_threshold)
+
+    for idx, row in enumerate(rows):
+        if is_summary_row(row, idx):
             summary_rows.append(row)
         else:
             item_rows.append(row)
 
     return item_rows, summary_rows
+
 
 def extract_best_table_and_headers(html_tables: list[str]) -> tuple[str, list[str], int]:
     best_score = -1
@@ -250,7 +267,7 @@ def extract_best_table_and_headers(html_tables: list[str]) -> tuple[str, list[st
                 best_headers = candidate_headers
                 best_header_row_index = i
 
-    return best_table, best_headers, best_header_row_index + 1  # +1 to skip header
+    return best_table, best_headers, best_header_row_index # +1 to skip header
 
 
 def process_invoice(markdown_html: str, llm: Any) -> dict:
