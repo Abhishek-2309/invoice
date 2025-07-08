@@ -29,7 +29,7 @@ Tables:
 """
 
 
-kv2_prompt = """
+kv_prompt = """
 Read the entire document and extract all possible key value pairs present in it
 Finallyy, Return them in ONLY JSON inside triple backticks like this:
 ```json
@@ -41,7 +41,7 @@ Text:
 {doc_body}
 """
 
-kv_prompt = """
+kv2_prompt = """
 You are given the body of an invoice (in Markdown) except the main line table.
 Read the entire markdown body and extract all the following key value pairs in this format. If any field is not found, leave it empty.
 
