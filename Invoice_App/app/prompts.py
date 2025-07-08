@@ -42,9 +42,19 @@ Text:
 """
 
 kv2_prompt = """
-You are given the json of an invoice consisting key value pairs.
-Read the noisy data and classify them into the following json fields.
-If any field is not found, leave it empty.
+You are given key-value data extracted from an invoice. The data may be noisy, unstructured, or flattened. Your task is to read this input and **map all relevant fields** into the **structured JSON schema** below.
+
+- Leave any missing fields as empty strings (`""`).  
+- You must preserve the original formatting of addresses, numbers, and IDs.  
+- Nest the fields properly as per the schema.  
+- Output must be valid JSON wrapped in triple backticks like this:
+  
+```json
+{
+  "Header": { ... },
+  ...
+}
+
 
 Here is the desired JSON schema:
 ~~~json
