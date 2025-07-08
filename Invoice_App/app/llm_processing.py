@@ -27,11 +27,23 @@ INVOICE_HEADER_KEYWORDS = [
     "serial", "no", "sr. no", "sl no", "line no", "remarks", "batch no", "expiry date"
 ]
 
-def process_invoice_dir(markdown):
-    model_id = "Qwen/Qwen2.5-3B"
-    llm_model = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=torch.float16, device_map="auto")
-    llm_tokenizer = AutoTokenizer.from_pretrained(model_id)
-    llm = pipeline("text-generation", model=llm_model, tokenizer=llm_tokenizer, max_new_tokens=4096, return_full_text=False)
+def process_invoice_dir(markdown: str):
+    model_id = "meta-llama/Llama-3.2-3B-Instruct"  # Instruction-tuned version
+    tokenizer = AutoTokenizer.from_pretrained(model_id)
+    model = AutoModelForCausalLM.from_pretrained(
+        model_id,
+        torch_dtype=torch.float16,     # or torch.float16 if your GPU supports it
+        device_map="auto"
+    )
+    llm = pipeline(
+        "text-generation",
+        model=model,
+        tokenizer=tokenizer,
+        max_new_tokens=2048,
+        do_sample=False,
+        temperature=0.0,  # deterministic
+        return_full_text=False
+    )
     return process_invoice(markdown, llm)
 
 
@@ -409,7 +421,7 @@ def process_invoice(markdown_html: str, llm: Any) -> dict:
     formatted = "\n".join(f"- {k}: {v}" for k, v in flat_data.items())    
     filled_prompt = kv2_prompt.replace("{doc_body}", formatted)
     print(filled_prompt)
-    raw_kv = llm(filled_prompt, do_sample=False)[0]["generated_text"]
+    raw_kv = llm(filled_prompt)[0]["generated_text"]
     return raw_kv
     """
     raw_kv = llm(full_kv_prompt, do_sample=False)[0]["generated_text"]
