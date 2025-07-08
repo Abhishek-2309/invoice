@@ -28,7 +28,7 @@ INVOICE_HEADER_KEYWORDS = [
 ]
 
 def process_invoice_dir(markdown: str):
-    model_id = "google/gemma-2b-it"  # Instruction-tuned version
+    model_id = "deepseek-ai/deepseek-coder-1.3b-instruct"  # Instruction-tuned version
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
