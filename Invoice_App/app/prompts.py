@@ -30,12 +30,7 @@ Tables:
 
 
 kv_prompt = """
-Read the entire document and extract all the following key value pairs present in it. If any field is not found, leave it empty.:
-Header level details like Invoice number, date, buyer and seller infomation.
-Summary detais like total amount, taxes, discounts.
-Payment details like payment methods, payment due date, bank details.
-Other important sections like terms and conditons, signature.
-
+Read the entire document and extract all the following key value pairs present in it.
 Finally, Return them in ONLY JSON inside triple backticks like this:
 ```json
 {{
@@ -47,8 +42,9 @@ Text:
 """
 
 kv2_prompt = """
-You are given the body of an invoice (in Markdown) except the main line table.
-Read the entire markdown body and extract all the following key value pairs. If any field is not found, leave it empty.
+You are given the json of an invoice consisting key value pairs.
+Read the noisy data and classify them into the following json fields.
+If any field is not found, leave it empty.
 
 Here is the desired JSON schema:
 ~~~json
