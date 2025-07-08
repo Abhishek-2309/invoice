@@ -39,7 +39,7 @@ def process_invoice_dir(markdown: str):
         "text-generation",
         model=model,
         tokenizer=tokenizer,
-        max_new_tokens=2048,
+        max_new_tokens=1024,
         do_sample=False,
         temperature=0.0,  # deterministic
         return_full_text=False
