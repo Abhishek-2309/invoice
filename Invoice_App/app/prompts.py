@@ -48,40 +48,40 @@ Extract all invoice metadata as structured key-value pairs. An example JSON sche
 ~~~json
 {{
   "Header": {{
-    "Unique Invoice Number": "...",
-    "Invoice Date": "...",
+    "Invoice Number": "The invoice number associated with the document",
+    "Invoice Date": "Date of invoice",
     "Seller's Information": {{
-      "Company Name": "...",
-      "Address": "...",
-      "Contact": "...",
-      "GSTIN": "..."
+      "Company Name": "Name of Company/Seller",
+      "Address": "Address of Company/Seller",
+      "Contact": "All contact details of the Company/Seller",
+      "GSTIN": "GSTIN of the seller"
     }},
     "Buyer's Information": {{
-      "Company Name": "...",
-      "Address": "...",
-      "Contact": "...",
-      "GSTIN": "..."
+      "Company Name": "Name of Customer/Client/Buyer",
+      "Address": "Address of Customer/Client/Buyer",
+      "Contact": "Contact details of Customer/Client/Buyer",
+      "GSTIN": "GSTIN of Customer/Client/Buyer"
     }}
   }},
   "Payment Terms": {{
     "Bank_details": {{
-      "Bank Name": "...",
-      "IFSC_code": "...",
-      "bank_account_no": "..."
+      "Bank Name": "Name of the bank/transactor",
+      "IFSC_code": "IFSC Code of the bank",
+      "bank_account_no": "bank account number used for invoice"
     }},
-    "Payment Due Date": "...",
-    "Payment Methods": "..."
+    "Payment Due Date": "Due date of payment mentioned in invoice",
+    "Payment Methods": "Any payment methods mentioned"
   }},
   "Summary": {{
-    "Subtotal": "...",
-    "Taxes": "...",
-    "Discounts": "...",
-    "Total Amount Due": "..."
+    "Subtotal": "Total amount of invoice",
+    "Taxes": "All taxes related information",
+    "Discounts": "Any discounts mentioned",
+    "Total Amount Due": "Final amount due after everything"
   }},
   "Other Important Sections": {{
-    "Terms and conditions": "...",
-    "Notes/Comments": "...",
-    "Signature": "..."
+    "Terms and conditions": "All terms and conditions mentioned in invoice",
+    "Notes/Comments": "Any additional comments",
+    "Signature": "Signature present in document"
   }}
 }}
 ~~~
