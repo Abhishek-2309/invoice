@@ -421,7 +421,7 @@ def process_invoice(markdown_html: str, model: Any, tokenizer:Any) -> dict:
         pad_token_id=tokenizer.eos_token_id
     )
     decoded = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    return raw_kv
+    return decoded
     """
     raw_kv = llm(full_kv_prompt, do_sample=False)[0]["generated_text"]
     print(raw_kv)
