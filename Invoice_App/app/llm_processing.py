@@ -12,7 +12,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from app.schemas import KVResult, InvoiceSchema
 from app.prompts import kv_prompt, kv2_prompt
 from app.ocr import ocr_model, ocr_processor
-#from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
+from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 
 # Load spaCy model once
 nlp = spacy.load("en_core_web_md")
@@ -28,14 +28,10 @@ INVOICE_HEADER_KEYWORDS = [
 ]
 
 def process_invoice_dir(markdown):
-    # Model setup
-    """
-    model_id = "Qwen/Qwen2.5-7B"
+    model_id = "Qwen/Qwen2.5-1.5B"
     llm_model = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=torch.float16, device_map="auto")
     llm_tokenizer = AutoTokenizer.from_pretrained(model_id)
     llm = pipeline("text-generation", model=llm_model, tokenizer=llm_tokenizer, max_new_tokens=4096, return_full_text=False)
-    """
-    llm = None
     return process_invoice(markdown, llm)
 
 
@@ -411,8 +407,9 @@ def process_invoice(markdown_html: str, llm: Any) -> dict:
     kv_data = extract_invoice_kv_fields(str(soup), kv_prompt)
     flat_data = flatten_dict(kv_data)
     formatted = "\n".join(f"- **{k}**: {v}" for k, v in flat_data.items())    
-    return extract_invoice_kv_fields(formatted, kv2_prompt)
-    
+    filled_prompt = kv2_prompt.replace("{doc_body}", formatted)
+    raw_kv = llm(filled_prompt, do_sample=False)[0]["generated_text"]
+    return raw_kv
     """
     raw_kv = llm(full_kv_prompt, do_sample=False)[0]["generated_text"]
     print(raw_kv)
