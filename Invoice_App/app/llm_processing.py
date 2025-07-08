@@ -33,7 +33,8 @@ def process_invoice_dir(markdown: str):
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
         torch_dtype=torch.float16,     # or torch.float16 if your GPU supports it
-        device_map="auto"
+        device_map="auto",
+        trust_remote_code = True
     )
     llm = pipeline(
         "text-generation",
