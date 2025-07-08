@@ -411,7 +411,6 @@ def process_invoice(markdown_html: str, llm: Any) -> dict:
     kv_data = extract_invoice_kv_fields(str(soup), kv_prompt)
     flat_data = flatten_dict(kv_data)
     formatted = "\n".join(f"- **{k}**: {v}" for k, v in flat_data.items())    
-    full_kv_prompt = kv2_prompt.format(doc_body=formatted)
     return extract_invoice_kv_fields(formatted, kv2_prompt)
     
     """
