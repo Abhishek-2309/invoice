@@ -28,7 +28,7 @@ INVOICE_HEADER_KEYWORDS = [
 ]
 
 def process_invoice_dir(markdown):
-    model_id = "Qwen/Qwen2.5-1.5B"
+    model_id = "Qwen/Qwen2.5-3B"
     llm_model = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=torch.float16, device_map="auto")
     llm_tokenizer = AutoTokenizer.from_pretrained(model_id)
     llm = pipeline("text-generation", model=llm_model, tokenizer=llm_tokenizer, max_new_tokens=4096, return_full_text=False)
