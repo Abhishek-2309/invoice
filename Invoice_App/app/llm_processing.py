@@ -28,24 +28,15 @@ INVOICE_HEADER_KEYWORDS = [
 ]
 
 def process_invoice_dir(markdown: str):
-    model_id = "deepseek-ai/deepseek-coder-1.3b-instruct"  # Instruction-tuned version
-    tokenizer = AutoTokenizer.from_pretrained(model_id)
+    model_id = "Qwen/Qwen2.5-3b"  # Instruction-tuned version
+    tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
-        torch_dtype=torch.float16,     # or torch.float16 if your GPU supports it
         device_map="auto",
-        trust_remote_code = True
+        torch_dtype=torch.float16,  # or bfloat16 if using Ampere+
+        trust_remote_code=True
     )
-    llm = pipeline(
-        "text-generation",
-        model=model,
-        tokenizer=tokenizer,
-        max_new_tokens=1024,
-        do_sample=False,
-        temperature=0.0,  # deterministic
-        return_full_text=False
-    )
-    return process_invoice(markdown, llm)
+    return process_invoice(markdown, model, tokenizer)
 
 
 def extract_json_from_output(text: str) -> dict:
@@ -364,7 +355,7 @@ def flatten_dict(d: dict, parent_key: str = '', sep: str = '.') -> dict:
             items[new_key] = v
     return items
 
-def process_invoice(markdown_html: str, llm: Any) -> dict:
+def process_invoice(markdown_html: str, model: Any, tokenizer:Any) -> dict:
     soup = BeautifulSoup(markdown_html, "html.parser")
     html_tables = [str(tbl) for tbl in soup.find_all("table")]
 
@@ -421,8 +412,15 @@ def process_invoice(markdown_html: str, llm: Any) -> dict:
     flat_data = flatten_dict(kv_data)
     formatted = "\n".join(f"- {k}: {v}" for k, v in flat_data.items())    
     filled_prompt = kv2_prompt.replace("{doc_body}", formatted)
-    print(filled_prompt)
-    raw_kv = llm(filled_prompt)[0]["generated_text"]
+    inputs = tokenizer(filled_prompt, return_tensors="pt").to(model.device)
+    outputs = model.generate(
+        **inputs,
+        max_new_tokens=1024,
+        do_sample=False,
+        temperature=0.0,
+        pad_token_id=tokenizer.eos_token_id
+    )
+    decoded = tokenizer.decode(outputs[0], skip_special_tokens=True)
     return raw_kv
     """
     raw_kv = llm(full_kv_prompt, do_sample=False)[0]["generated_text"]
