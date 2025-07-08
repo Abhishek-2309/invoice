@@ -29,9 +29,54 @@ Tables:
 """
 
 
-kv_prompt = """
-Read the entire document and extract all the following key value pairs present in it.
-Finally, Return them in ONLY JSON inside triple backticks like this:
+kv2_prompt = """
+You are given the body of an invoice excluding the main line item table.
+
+Extract all invoice metadata as structured key-value pairs. An example JSON schema is as follows:
+~~~json
+{{
+  "Header": {{
+    "Unique Invoice Number": "...",
+    "Invoice Date": "...",
+    "Seller's Information": {{
+      "Company Name": "...",
+      "Address": "...",
+      "Contact": "...",
+      "GSTIN": "..."
+    }},
+    "Buyer's Information": {{
+      "Company Name": "...",
+      "Address": "...",
+      "Contact": "...",
+      "GSTIN": "..."
+    }}
+  }},
+  "Payment Terms": {{
+    "Bank_details": {{
+      "Bank Name": "...",
+      "IFSC_code": "...",
+      "bank_account_no": "..."
+    }},
+    "Payment Due Date": "...",
+    "Payment Methods": "..."
+  }},
+  "Summary": {{
+    "Subtotal": "...",
+    "Taxes": "...",
+    "Discounts": "...",
+    "Total Amount Due": "..."
+  }},
+  "Other Important Sections": {{
+    "Terms and conditions": "...",
+    "Notes/Comments": "...",
+    "Signature": "..."
+  }}
+}}
+~~~
+
+Make sure all values are strings and do not contain newlines.
+Extract only from document contents, If relevant values are not found, leave empty.
+Return **ONLY JSON** inside triple backticks like this:
 ```json
 {{
   "Header": ...,
@@ -41,7 +86,7 @@ Text:
 {doc_body}
 """
 
-kv2_prompt = """
+kv_prompt = """
 You are given the body of an invoice (in HTML/Markdown) excluding the main line item table.
 
 Extract all invoice metadata as structured key-value pairs. An example JSON schema is as follows:
