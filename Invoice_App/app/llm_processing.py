@@ -10,7 +10,7 @@ import spacy
 from typing import Any
 from sklearn.metrics.pairwise import cosine_similarity
 from app.schemas import KVResult, InvoiceSchema
-from app.prompts import kv_prompt. kv2_prompt
+from app.prompts import kv_prompt, kv2_prompt
 from app.ocr import ocr_model, ocr_processor
 #from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 
