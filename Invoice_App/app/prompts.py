@@ -31,28 +31,11 @@ Tables:
 
 kv_prompt = """
 Read the entire document and extract all the following key value pairs present in it. If any field is not found, leave it empty.:
-Invoice Number
-Invoice Date
-Seller's Name:
-Seller's Address:
-Seller's Contact: 
-Seller's GSTIN:
-Buyer's Name: 
-Buyer's Address: 
-Buyer's Contact: 
-Buyer's GSTIN: 
-Bank Name: 
-IFSC Code: 
-Bank Account Number: 
-Payment Due Date: 
-Payment Methods: 
-Subtotal: 
-Taxes: 
-Discounts: 
-Total Amount Due:
-Terms and Conditions: 
-Notes/Comments: 
-Signature: 
+Header level details like Invoice number, date, buyer and seller infomation.
+Summary detais like total amount, taxes, discounts.
+Payment details like payment methods, payment due date, bank details.
+Other important sections like terms and conditons, signature.
+
 Finally, Return them in ONLY JSON inside triple backticks like this:
 ```json
 {{
