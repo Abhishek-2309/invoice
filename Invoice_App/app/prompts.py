@@ -42,21 +42,9 @@ Text:
 """
 
 kv2_prompt = """
-You are given key-value data extracted from an invoice. The data may be noisy, unstructured, or flattened. Your task is to read this input and **map all relevant fields** into the **structured JSON schema** below.
+You are given the body of an invoice (in HTML/Markdown) excluding the main line item table.
 
-- Leave any missing fields as empty strings (`""`).  
-- You must preserve the original formatting of addresses, numbers, and IDs.  
-- Nest the fields properly as per the schema.  
-- Output must be valid JSON wrapped in triple backticks like this:
-  
-```json
-{
-  "Header": { ... },
-  ...
-}
-
-
-Here is the desired JSON schema:
+Extract all invoice metadata as structured key-value pairs. An example JSON schema is as follows:
 ~~~json
 {{
   "Header": {{
@@ -98,7 +86,9 @@ Here is the desired JSON schema:
 }}
 ~~~
 
-- Return ONLY JSON inside triple backticks like this:
+Make sure all values are strings and do not contain newlines.
+Extract only from document contents, If relevant values are not found, leave empty.
+Return **ONLY JSON** inside triple backticks like this:
 ```json
 {{
   "Header": ...,
@@ -107,3 +97,4 @@ Here is the desired JSON schema:
 Text:
 {doc_body}
 """
+
