@@ -28,7 +28,7 @@ INVOICE_HEADER_KEYWORDS = [
 ]
 
 def process_invoice_dir(markdown: str):
-    model_id = "meta-llama/Llama-3.2-3B-Instruct"  # Instruction-tuned version
+    model_id = "microsoft/phi-2"  # Instruction-tuned version
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
