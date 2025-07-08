@@ -357,7 +357,7 @@ def flatten_dict(d: dict, parent_key: str = '', sep: str = '.') -> dict:
             items[new_key] = v
     return items
 
-def process_invoice(markdown_html: str, model: Any, tokenizer:Any) -> dict:
+def process_invoice(markdown_html: str) -> dict:
     soup = BeautifulSoup(markdown_html, "html.parser")
     html_tables = [str(tbl) for tbl in soup.find_all("table")]
 
