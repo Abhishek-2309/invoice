@@ -408,6 +408,7 @@ def process_invoice(markdown_html: str, llm: Any) -> dict:
     flat_data = flatten_dict(kv_data)
     formatted = "\n".join(f"- {k}: {v}" for k, v in flat_data.items())    
     filled_prompt = kv2_prompt.replace("{doc_body}", formatted)
+    print(filled_prompt)
     raw_kv = llm(filled_prompt, do_sample=False)[0]["generated_text"]
     return raw_kv
     """
