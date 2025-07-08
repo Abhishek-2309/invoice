@@ -329,8 +329,8 @@ def strip_prompt_from_output(text: str) -> str:
         return parts[1].strip()
     return text.strip()  # fallback: return everything
 
-def extract_invoice_kv_fields(markdown: str, max_new_tokens=4096) -> dict:
-    filled_prompt = kv_prompt.replace("{doc_body}", markdown)
+def extract_invoice_kv_fields(markdown: str, prompt, max_new_tokens = 4096) -> dict:
+    filled_prompt = prompt.replace("{doc_body}", markdown)
 
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
@@ -344,6 +344,16 @@ def extract_invoice_kv_fields(markdown: str, max_new_tokens=4096) -> dict:
     result = ocr_processor.batch_decode(outputs, skip_special_tokens=True)[0]
     markdown_res = strip_prompt_from_output(result)
     return extract_json_from_output(markdown_res)
+
+def flatten_dict(d: dict, parent_key: str = '', sep: str = '.') -> dict:
+    items = {}
+    for k, v in d.items():
+        new_key = f"{parent_key}{sep}{k}" if parent_key else k
+        if isinstance(v, dict):
+            items.update(flatten_dict(v, new_key, sep=sep))
+        else:
+            items[new_key] = v
+    return items
 
 def process_invoice(markdown_html: str, llm: Any) -> dict:
     soup = BeautifulSoup(markdown_html, "html.parser")
@@ -398,16 +408,19 @@ def process_invoice(markdown_html: str, llm: Any) -> dict:
             """
 
     print(str(soup))
-    kv_data = extract_invoice_kv_fields(str(soup))
+    kv_data = extract_invoice_kv_fields(str(soup), kv_prompt)
+    flat_data = flatten_dict(kv_data)
+    formatted = "\n".join(f"- **{k}**: {v}" for k, v in flat_data.items())    
+    full_kv_prompt = kv2_prompt.format(doc_body=formatted)
+    return extract_invoice_kv_fields(formatted, kv2_prompt)
     
-    # Use LLM for KV metadata
-    full_kv_prompt = kv2_prompt.format(doc_body=kv_data)
+    """
     raw_kv = llm(full_kv_prompt, do_sample=False)[0]["generated_text"]
     print(raw_kv)
     parsed_kv = extract_json_from_output(raw_kv)
     return parsed_kv
     
-    """
+    
     kv_result = KVResult(**kv_data)
     
     return InvoiceSchema(
