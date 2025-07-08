@@ -10,7 +10,7 @@ import spacy
 from typing import Any
 from sklearn.metrics.pairwise import cosine_similarity
 from app.schemas import KVResult, InvoiceSchema
-from app.prompts import kv_prompt
+from app.prompts import kv_prompt. kv2_prompt
 from app.ocr import ocr_model, ocr_processor
 #from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 
@@ -399,16 +399,15 @@ def process_invoice(markdown_html: str, llm: Any) -> dict:
 
     print(str(soup))
     kv_data = extract_invoice_kv_fields(str(soup))
-    return kv_data
-    """
+    
     # Use LLM for KV metadata
-    full_kv_prompt = kv_prompt.format(doc_body=str(soup))
+    full_kv_prompt = kv2_prompt.format(doc_body=kv_data)
     raw_kv = llm(full_kv_prompt, do_sample=False)[0]["generated_text"]
     print(raw_kv)
     parsed_kv = extract_json_from_output(raw_kv)
-    print(parsed_kv)
+    return parsed_kv
     
-    
+    """
     kv_result = KVResult(**kv_data)
     
     return InvoiceSchema(
