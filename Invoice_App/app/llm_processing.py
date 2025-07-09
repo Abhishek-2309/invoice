@@ -29,7 +29,7 @@ INVOICE_HEADER_KEYWORDS = [
 
 def process_invoice_dir(markdown: str):
     
-    model_id = "Qwen/Qwen2.5-7b"  # Instruction-tuned version
+    model_id = "Qwen/Qwen2.5-3b"  # Instruction-tuned version
     tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
