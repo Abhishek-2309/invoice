@@ -414,7 +414,7 @@ def process_invoice(markdown_html: str, tokenizer, model) -> dict:
     print(kv_data, "kv_DATA")
     flat_data = flatten_dict(kv_data)
     print("FLATTEN DICT", flat_data)
-    formatted = "\n".join(f"- {k}: {v}" for k, v in flat_data.items())    
+    formatted = "\n".join(f"{k}: {v}" for k, v in flat_data.items())    
     print(formatted)
     print("\n")
     filled_prompt = kv2_prompt.replace("{doc_body}", formatted)
@@ -422,9 +422,10 @@ def process_invoice(markdown_html: str, tokenizer, model) -> dict:
     inputs = tokenizer(filled_prompt, return_tensors="pt").to(model.device)
     outputs = model.generate(
         **inputs,
-        max_new_tokens=1024,
+        max_new_tokens=4096,
         do_sample=False,
         temperature=0.0,
+        repetition_penalty=1.2,
         pad_token_id=tokenizer.eos_token_id
     )
     decoded = tokenizer.decode(outputs[0], skip_special_tokens=True)
