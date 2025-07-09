@@ -410,7 +410,7 @@ def process_invoice(markdown_html: str, tokenizer, model) -> dict:
             """
 
     print(str(soup))
-    kv_data = extract_invoice_kv_fields(str(soup), kv2_prompt)
+    kv_data = extract_invoice_kv_fields(str(soup), kv_prompt)
     print(kv_data, "kv_DATA")
     flat_data = flatten_dict(kv_data)
     print("FLATTEN DICT", flat_data)
