@@ -36,7 +36,7 @@ Return it as follows:
 ~~~json
 {{
   "Header": {{
-    "Unique Invoice Number": "...",
+    "Invoice Number": "...",
     "Invoice Date": "...",
     "Seller's Information": {{
       "Company Name": "...",
