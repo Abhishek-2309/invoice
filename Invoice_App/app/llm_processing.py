@@ -429,15 +429,13 @@ def process_invoice(markdown_html: str, tokenizer, model) -> dict:
         pad_token_id=tokenizer.eos_token_id
     )
     decoded = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    return decoded
 
     """
     raw_kv = llm(full_kv_prompt, do_sample=False)[0]["generated_text"]
     print(raw_kv)
-    parsed_kv = extract_json_from_output(raw_kv)
-    return parsed_kv
-    
-    
+    """
+    parsed_kv = extract_json_from_output(decoded)
+        
     kv_result = KVResult(**kv_data)
     
     return InvoiceSchema(
