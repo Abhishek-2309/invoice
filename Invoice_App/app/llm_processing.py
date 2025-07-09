@@ -12,7 +12,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from app.schemas import KVResult, InvoiceSchema
 from app.prompts import kv_prompt, kv2_prompt
 from app.ocr import ocr_model, ocr_processor
-#from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
+from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 
 # Load spaCy model once
 nlp = spacy.load("en_core_web_md")
@@ -28,7 +28,7 @@ INVOICE_HEADER_KEYWORDS = [
 ]
 
 def process_invoice_dir(markdown: str):
-    """
+    
     model_id = "Qwen/Qwen2.5-7b"  # Instruction-tuned version
     tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
     model = AutoModelForCausalLM.from_pretrained(
@@ -37,7 +37,7 @@ def process_invoice_dir(markdown: str):
         torch_dtype=torch.float16,  # or bfloat16 if using Ampere+
         trust_remote_code=True
     )
-    """
+    
     return process_invoice(markdown, tokenizer, model)
 
 
