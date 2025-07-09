@@ -38,7 +38,7 @@ def process_invoice_dir(markdown: str):
         trust_remote_code=True
     )
     """
-    return process_invoice(markdown)
+    return process_invoice(markdown, tokenizer, model)
 
 
 def extract_json_from_output(text: str) -> dict:
@@ -357,7 +357,7 @@ def flatten_dict(d: dict, parent_key: str = '', sep: str = '.') -> dict:
             items[new_key] = v
     return items
 
-def process_invoice(markdown_html: str) -> dict:
+def process_invoice(markdown_html: str, tokenizer, model) -> dict:
     soup = BeautifulSoup(markdown_html, "html.parser")
     html_tables = [str(tbl) for tbl in soup.find_all("table")]
 
@@ -411,11 +411,10 @@ def process_invoice(markdown_html: str) -> dict:
 
     print(str(soup))
     kv_data = extract_invoice_kv_fields(str(soup), kv2_prompt)
-    return kv_data
-    """
     flat_data = flatten_dict(kv_data)
     formatted = "\n".join(f"- {k}: {v}" for k, v in flat_data.items())    
     filled_prompt = kv2_prompt.replace("{doc_body}", formatted)
+    print(filled_prompt)
     inputs = tokenizer(filled_prompt, return_tensors="pt").to(model.device)
     outputs = model.generate(
         **inputs,
@@ -426,7 +425,8 @@ def process_invoice(markdown_html: str) -> dict:
     )
     decoded = tokenizer.decode(outputs[0], skip_special_tokens=True)
     return decoded
-    
+
+    """
     raw_kv = llm(full_kv_prompt, do_sample=False)[0]["generated_text"]
     print(raw_kv)
     parsed_kv = extract_json_from_output(raw_kv)
