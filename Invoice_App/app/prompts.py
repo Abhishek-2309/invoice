@@ -30,9 +30,9 @@ Tables:
 
 
 kv2_prompt = """
-You are given the body of an invoice excluding the main line item table.
-
-Extract all invoice metadata as structured key-value pairs. An example JSON schema is as follows:
+You are given a set of fields and their values extracted from an invoice document.
+Map all the fields in the below JSON schema to the closest field and value associated with it
+Return it as follows:
 ~~~json
 {{
   "Header": {{
@@ -73,66 +73,14 @@ Extract all invoice metadata as structured key-value pairs. An example JSON sche
   }}
 }}
 ~~~
-
-Make sure all values are strings and do not contain newlines.
 Extract only from document contents, If relevant values are not found, leave empty.
-Return **ONLY JSON** inside triple backticks like this:
-```json
-{{
-  "Header": ...,
-  ...
-}}
-Text:
+Fields:
 {doc_body}
 """
 
 kv_prompt = """
 You are given the body of an invoice (in HTML/Markdown) excluding the main line item table.
-
-Extract all invoice metadata as structured key-value pairs. An example JSON schema is as follows:
-~~~json
-{{
-  "Header": {{
-    "Invoice Number": "The invoice number associated with the document",
-    "Invoice Date": "Date of invoice",
-    "Seller's Information": {{
-      "Company Name": "Name of Company/Seller",
-      "Address": "Address of Company/Seller",
-      "Contact": "All contact details of the Company/Seller",
-      "GSTIN": "GSTIN of the seller"
-    }},
-    "Buyer's Information": {{
-      "Company Name": "Name of Customer/Client/Buyer",
-      "Address": "Address of Customer/Client/Buyer",
-      "Contact": "Contact details of Customer/Client/Buyer",
-      "GSTIN": "GSTIN of Customer/Client/Buyer"
-    }}
-  }},
-  "Payment Terms": {{
-    "Bank_details": {{
-      "Bank Name": "Name of the bank/transactor",
-      "IFSC_code": "IFSC Code of the bank",
-      "bank_account_no": "bank account number used for invoice"
-    }},
-    "Payment Due Date": "Due date of payment mentioned in invoice",
-    "Payment Methods": "Any payment methods mentioned"
-  }},
-  "Summary": {{
-    "Subtotal": "Total amount of invoice",
-    "Taxes": "All taxes related information",
-    "Discounts": "Any discounts mentioned",
-    "Total Amount Due": "Final amount due after everything"
-  }},
-  "Other Important Sections": {{
-    "Terms and conditions": "All terms and conditions mentioned in invoice",
-    "Notes/Comments": "Any additional comments",
-    "Signature": "Signature present in document"
-  }}
-}}
-~~~
-
-Make sure all values are strings and do not contain newlines.
-Extract only from document contents, If relevant values are not found, leave empty.
+Extract all the key value pairs present in the document.
 Return **ONLY JSON** inside triple backticks like this:
 ```json
 {{
