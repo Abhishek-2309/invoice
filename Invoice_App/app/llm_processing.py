@@ -419,7 +419,7 @@ def process_invoice(markdown_html: str, tokenizer, model) -> dict:
     filled_prompt = kv2_prompt.replace("{doc_body}", formatted)
     print(filled_prompt)
     
-    messages = [{"role": "user", "content": prompt}]
+    messages = [{"role": "user", "content": filled_prompt}]
     text = tokenizer.apply_chat_template(
     messages,
     tokenize=False,
