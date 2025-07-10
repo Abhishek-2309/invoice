@@ -344,7 +344,7 @@ def extract_invoice_kv_fields(markdown: str, prompt, max_new_tokens = 4096) -> d
     outputs = ocr_model.generate(**inputs, max_new_tokens=max_new_tokens, do_sample=False)
     result = ocr_processor.batch_decode(outputs, skip_special_tokens=True)[0]
     markdown_res = strip_prompt_from_output(result)
-    return extract_json_from_output(markdown_res)
+    return _from_output(markdown_res)
 
 def flatten_dict(d: dict, parent_key: str = '', sep: str = '.') -> dict:
     items = {}
@@ -436,12 +436,7 @@ def process_invoice(markdown_html: str, tokenizer, model) -> dict:
     output_ids = generated_ids[0][len(model_inputs.input_ids[0]):]
     full_output = tokenizer.decode(output_ids, skip_special_tokens=True)
 
-    match = re.search(r"~~~json\s*(\{.*?\})\s*~~~", full_output, re.DOTALL)
-    if match:
-        fields_json = match.group(1).strip()
-    else:
-        brace_match = re.search(r"(\{.*\})", full_output, re.DOTALL)
-        fields_json = brace_match.group(1).strip() if brace_match else full_output.strip()
+    fields_json = extract_json_from_output(full_output)
     
     kv_result = KVResult(**fields_json)
     
@@ -457,7 +452,7 @@ def process_invoice(markdown_html: str, tokenizer, model) -> dict:
     raw_kv = llm(full_kv_prompt, do_sample=False)[0]["generated_text"]
     print(raw_kv)
     
-    parsed_kv = extract_json_from_output(decoded)
+    parsed_kv = _from_output(decoded)
         
     kv_result = KVResult(**kv_data)
     
