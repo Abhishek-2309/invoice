@@ -433,11 +433,17 @@ def process_invoice(markdown_html: str, tokenizer, model) -> dict:
         **model_inputs,
         max_new_tokens=32768
     )
-    output_ids = generated_ids[0][len(model_inputs.input_ids[0]):].tolist() 
-    index = len(output_ids) - output_ids[::-1].index(151668)
-    content = tokenizer.decode(output_ids[index:], skip_special_tokens=True).strip("\n")
+    output_ids = generated_ids[0][len(model_inputs.input_ids[0]):]
+    full_output = tokenizer.decode(output_ids, skip_special_tokens=True)
 
-    return content
+    match = re.search(r"~~~json\s*(\{.*?\})\s*~~~", full_output, re.DOTALL)
+    if match:
+        json_content = match.group(1).strip()
+    else:
+        brace_match = re.search(r"(\{.*\})", full_output, re.DOTALL)
+        json_content = brace_match.group(1).strip() if brace_match else full_output.strip()
+
+    return json_content
     """
     raw_kv = llm(full_kv_prompt, do_sample=False)[0]["generated_text"]
     print(raw_kv)
