@@ -29,13 +29,12 @@ INVOICE_HEADER_KEYWORDS = [
 
 def process_invoice_dir(markdown: str):
     
-    model_id = "Qwen/Qwen2.5-7b"  # Instruction-tuned version
-    tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
+    model_id = "Qwen/Qwen3-8B"  # Instruction-tuned version
+    tokenizer = AutoTokenizer.from_pretrained(model_id)
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
         device_map="auto",
         torch_dtype=torch.float16,  # or bfloat16 if using Ampere+
-        trust_remote_code=True
     )
     
     return process_invoice(markdown, tokenizer, model)
@@ -419,21 +418,29 @@ def process_invoice(markdown_html: str, tokenizer, model) -> dict:
     print("\n")
     filled_prompt = kv2_prompt.replace("{doc_body}", formatted)
     print(filled_prompt)
-    inputs = tokenizer(filled_prompt, return_tensors="pt").to(model.device)
-    outputs = model.generate(
-        **inputs,
-        max_new_tokens=4096,
-        do_sample=False,
-        temperature=0.0,
-        repetition_penalty=1.2,
-        pad_token_id=tokenizer.eos_token_id
+    
+    messages = [{"role": "user", "content": prompt}]
+    text = tokenizer.apply_chat_template(
+    messages,
+    tokenize=False,
+    add_generation_prompt=True,
+    enable_thinking=False # Switches between thinking and non-thinking modes. Default is True.
     )
-    decoded = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    model_inputs = tokenizer([text], return_tensors="pt").to(model.device)
+    
+    # conduct text completion
+    generated_ids = model.generate(
+        **model_inputs,
+        max_new_tokens=32768
+    )
+    output_ids = generated_ids[0][len(model_inputs.input_ids[0]):].tolist() 
+    content = tokenizer.decode(output_ids[index:], skip_special_tokens=True).strip("\n")
 
+    return content
     """
     raw_kv = llm(full_kv_prompt, do_sample=False)[0]["generated_text"]
     print(raw_kv)
-    """
+    
     parsed_kv = extract_json_from_output(decoded)
         
     kv_result = KVResult(**kv_data)
@@ -445,4 +452,4 @@ def process_invoice(markdown_html: str, tokenizer, model) -> dict:
         Summary=kv_result.Summary,
         Other_Important_Sections=kv_result.Other_Important_Sections,
     ).model_dump()
-    
+    """
