@@ -374,7 +374,7 @@ def process_invoice(markdown_html: str, tokenizer, model) -> dict:
     rows = table_csv_to_dicts(csv_path, best_headers, skiprows=best_header_rows)
     item_rows, summary_rows = detect_summary_rows(rows)
 
-    
+    """
     for table_tag in soup.find_all("table"):
         if str(table_tag) == best_table:
             # Prepare summary rows as plain text
@@ -393,7 +393,7 @@ def process_invoice(markdown_html: str, tokenizer, model) -> dict:
     
         else:
             continue
-            """
+            
             # Convert other tables to text, even if some cells are empty
             plain_text = []
             for row in table_tag.find_all("tr"):
@@ -406,7 +406,7 @@ def process_invoice(markdown_html: str, tokenizer, model) -> dict:
 
             replacement_string = soup.new_string("\n".join(plain_text))
             table_tag.replace_with(replacement_string)
-            """
+    """
 
     print(str(soup))
     kv_data = extract_invoice_kv_fields(str(soup), kv_prompt)
