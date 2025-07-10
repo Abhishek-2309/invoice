@@ -434,6 +434,7 @@ def process_invoice(markdown_html: str, tokenizer, model) -> dict:
         max_new_tokens=32768
     )
     output_ids = generated_ids[0][len(model_inputs.input_ids[0]):].tolist() 
+    index = len(output_ids) - output_ids[::-1].index(151668)
     content = tokenizer.decode(output_ids[index:], skip_special_tokens=True).strip("\n")
 
     return content
