@@ -321,7 +321,7 @@ def extract_best_table_and_headers(html_tables: list[str]) -> tuple[str, list[st
                 best_headers = candidate_headers
                 best_header_row_index = i
 
-    return best_table, best_headers, best_header_row_index # +1 to skip header
+    return best_table, best_headers, best_header_row_index + 1 
 
 def strip_prompt_from_output(text: str) -> str:
     split_pattern = r"(?:^|\n)assistant\s*\n"
