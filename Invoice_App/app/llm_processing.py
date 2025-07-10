@@ -438,12 +438,21 @@ def process_invoice(markdown_html: str, tokenizer, model) -> dict:
 
     match = re.search(r"~~~json\s*(\{.*?\})\s*~~~", full_output, re.DOTALL)
     if match:
-        json_content = match.group(1).strip()
+        fields_json = match.group(1).strip()
     else:
         brace_match = re.search(r"(\{.*\})", full_output, re.DOTALL)
-        json_content = brace_match.group(1).strip() if brace_match else full_output.strip()
+        fields_json = brace_match.group(1).strip() if brace_match else full_output.strip()
+    
+    kv_result = KVResult(**fields_json)
+    
+    return InvoiceSchema(
+        Header=kv_result.Header,
+        Items=item_rows,
+        Payment_Terms=kv_result.Payment_Terms,
+        Summary=kv_result.Summary,
+        Other_Important_Sections=kv_result.Other_Important_Sections,
+    ).model_dump()
 
-    return json_content
     """
     raw_kv = llm(full_kv_prompt, do_sample=False)[0]["generated_text"]
     print(raw_kv)
