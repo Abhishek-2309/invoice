@@ -344,7 +344,7 @@ def extract_invoice_kv_fields(markdown: str, prompt, max_new_tokens = 4096) -> d
     outputs = ocr_model.generate(**inputs, max_new_tokens=max_new_tokens, do_sample=False)
     result = ocr_processor.batch_decode(outputs, skip_special_tokens=True)[0]
     markdown_res = strip_prompt_from_output(result)
-    return _from_output(markdown_res)
+    return extract_json_from_output(markdown_res)
 
 def flatten_dict(d: dict, parent_key: str = '', sep: str = '.') -> dict:
     items = {}
