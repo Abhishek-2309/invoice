@@ -12,7 +12,7 @@ class PartyInfo(BaseModel):
 
 class HeaderSection(BaseModel):
     model_config = ConfigDict(extra='allow')
-    Invoice_Number: Optional[str] = Field(None, alias="Invoice No")
+    Invoice_Number: Optional[str] = Field(None, alias="Invoice Number")
     Invoice_Date: Optional[str] = Field(None, alias="Invoice Date")
     Seller_Info: Optional[PartyInfo] = Field(None, alias="Seller's Information")
     Buyer_Info: Optional[PartyInfo] = Field(None, alias="Buyer's Information")
