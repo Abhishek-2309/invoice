@@ -79,7 +79,7 @@ Fields:
 """
 
 kv_prompt = """
-You are given the body of an invoice (in HTML/Markdown) excluding the main line item table.
+You are given the body of an invoice (in HTML/Markdown).
 Extract all the key value pairs present in the document.
 Return **ONLY JSON** inside triple backticks like this:
 ```json
