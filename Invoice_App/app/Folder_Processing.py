@@ -2,6 +2,7 @@ from app.llm_processing import process_invoice_dir
 from app.ocr import ocr_page_with_nanonets
 from pdf2image import convert_from_path
 from PIL import Image
+from fastapi import UploadFile
 import os
 import shutil
 import zipfile
