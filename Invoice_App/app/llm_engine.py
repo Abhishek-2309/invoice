@@ -11,7 +11,7 @@ def load_llm():
         model, tokenizer = FastModel.from_pretrained(
             model_name="unsloth/Qwen3-8B-unsloth-bnb-4bit",
             max_seq_length=32768,
-            load_in_4bit = False,
-            load_in_8bit=True  # Or False for better accuracy
+            load_in_4bit = True,
+            load_in_8bit=False  # Or False for better accuracy
         )
     return model, tokenizer
