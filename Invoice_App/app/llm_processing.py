@@ -12,9 +12,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 from app.schemas import KVResult, InvoiceSchema
 from app.prompts import kv_prompt, kv2_prompt
 from app.ocr import ocr_model, ocr_processor
-from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
-# Load spaCy model once
 nlp = spacy.load("en_core_web_md")
 
 INVOICE_HEADER_KEYWORDS = [
@@ -29,19 +28,18 @@ INVOICE_HEADER_KEYWORDS = [
 
 def process_invoice_dir(markdown: str):
     
-    model_id = "Qwen/Qwen3-8B"  # Instruction-tuned version
+    model_id = "Qwen/Qwen3-8B"  
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
         device_map="auto",
-        torch_dtype=torch.float16,  # or bfloat16 if using Ampere+
+        torch_dtype=torch.float16, 
     )
     
     return process_invoice(markdown, tokenizer, model)
 
 
 def extract_json_from_output(text: str) -> dict:
-    print(text)
     match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
     if not match:
         match = re.search(r"(\{.*\})", text, re.DOTALL)
@@ -112,62 +110,6 @@ def convert_html_to_csv(html: str, output_csv_path: str) -> str:
     return output_csv_path
 
 
-def extract_and_merge_thead_headers_with_span(html: str):
-    from collections import defaultdict
-
-    soup = BeautifulSoup(html, "html.parser")
-    table = soup.find("table")
-    thead = table.find("thead") if table else None
-
-    if not thead:
-        return [], 0
-
-    rows = thead.find_all("tr")
-    header_matrix = []
-    col_occupancy = defaultdict(int)
-    total_cols = 0
-
-    for r_idx, row in enumerate(rows):
-        cells = row.find_all(["th", "td"])
-        cur_row = []
-        col_idx = 0
-
-        while len(cur_row) < total_cols or len(cur_row) < len(cells):
-            if col_occupancy[(r_idx, col_idx)]:
-                cur_row.append("")
-                col_idx += 1
-            else:
-                break
-
-        for cell in cells:
-            text = cell.get_text(strip=True)
-            colspan = int(cell.get("colspan", 1))
-            rowspan = int(cell.get("rowspan", 1))
-
-            for i in range(colspan):
-                cur_row.append(text)
-
-            for i in range(1, rowspan):
-                for j in range(colspan):
-                    col_occupancy[(r_idx + i, col_idx + j)] = 1
-
-            col_idx += colspan
-
-        total_cols = max(total_cols, len(cur_row))
-        header_matrix.append(cur_row)
-
-    for row in header_matrix:
-        while len(row) < total_cols:
-            row.append("")
-
-    final_headers = []
-    for col_cells in zip(*header_matrix):
-        merged = " ".join(cell for cell in col_cells if cell.strip())
-        final_headers.append(merged.strip())
-
-    return final_headers, len(header_matrix)
-
-
 def normalize(text: str) -> str:
     return re.sub(r"[^\w\s]", "", text.lower().strip())
 
@@ -175,7 +117,6 @@ REFERENCE_HEADER = ["product", "description", "qty", "unit price", "amount", "ta
 def score_header_similarity(headers: list[str]) -> int:
     headers = [h.lower() for h in headers]
 
-    # Define weighted keyword groups
     product_keywords = {"item", "product", "description", "details", "part number", "sku", "goods", "service", "article", "line item"}
     quantity_keywords = {"quantity", "qty", "unit", "units", "uom", "nos", "pcs", "pieces", "kg", "litre", "liter"}
     price_keywords = {"rate", "unit price", "price", "cost", "mrp", "list price", "selling price"}
@@ -184,7 +125,6 @@ def score_header_similarity(headers: list[str]) -> int:
     tax_keywords = {"hsn", "sac", "code", "hsn code", "sac code"}
     misc_keywords = {"serial", "no", "sr. no", "sl no", "line no", "remarks", "batch no", "expiry date"}
 
-    # Penalize if any of these are found
     payment_only_keywords = {"voucher", "payment", "received", "mode", "reference", "receipt"}
 
     score = 0
@@ -205,9 +145,8 @@ def score_header_similarity(headers: list[str]) -> int:
         if any(kw in header for kw in misc_keywords):
             score += 1
         if any(kw in header for kw in payment_only_keywords):
-            score -= 4  # Penalize voucher/payment tables
+            score -= 4  
 
-    # Extra boost if multiple major groups are matched
     groups_matched = sum([
         any(kw in h for h in headers for kw in g)
         for g in [product_keywords, quantity_keywords, price_keywords, amount_keywords]
@@ -229,7 +168,7 @@ def score_with_spacy(headers: list[str]) -> float:
     similarities = []
     for hv in header_vecs:
         row_sim = [cosine_similarity([hv], [rv])[0][0] for rv in ref_vecs]
-        similarities.append(max(row_sim))  # take max sim to any ref
+        similarities.append(max(row_sim)) 
 
     return float(np.mean(similarities))
 
@@ -308,7 +247,6 @@ def extract_best_table_and_headers(html_tables: list[str]) -> tuple[str, list[st
             cells = row.find_all(["th", "td"])
             candidate_headers = [cell.get_text(strip=True) for cell in cells]
 
-            # Skip if too few cells to be a header
             if len(candidate_headers) < 2:
                 continue
 
@@ -328,7 +266,7 @@ def strip_prompt_from_output(text: str) -> str:
     parts = re.split(split_pattern, text, maxsplit=1)
     if len(parts) == 2:
         return parts[1].strip()
-    return text.strip()  # fallback: return everything
+    return text.strip()  
 
 def extract_invoice_kv_fields(markdown: str, prompt, max_new_tokens = 4096) -> dict:
     filled_prompt = prompt.replace("{doc_body}", markdown)
@@ -374,61 +312,22 @@ def process_invoice(markdown_html: str, tokenizer, model) -> dict:
     rows = table_csv_to_dicts(csv_path, best_headers, skiprows=best_header_rows)
     item_rows, summary_rows = detect_summary_rows(rows)
 
-    """
-    for table_tag in soup.find_all("table"):
-        if str(table_tag) == best_table:
-            # Prepare summary rows as plain text
-            summary_text = []
-            for row in summary_rows:
-                # row is a dict
-                words = [str(v).strip() for v in row.values()]
-                summary_text.append(" ".join(words).strip())
-    
-            # Create NavigableString to inject in place of main table
-            summary_string = soup.new_string("\n".join(summary_text))
-    
-            # Insert text *after* the table, then remove table
-            table_tag.insert_after(summary_string)
-            table_tag.decompose()
-    
-        else:
-            continue
-            
-            # Convert other tables to text, even if some cells are empty
-            plain_text = []
-            for row in table_tag.find_all("tr"):
-                row_cells = []
-                for cell in row.find_all(["td", "th"]):
-                    text = cell.get_text(strip=True)
-                    colspan = int(cell.get("colspan", 1))
-                    row_cells.extend([text] + [""] * (colspan - 1))
-                plain_text.append(",".join(row_cells))
 
-            replacement_string = soup.new_string("\n".join(plain_text))
-            table_tag.replace_with(replacement_string)
-    """
-
-    print(str(soup))
     kv_data = extract_invoice_kv_fields(str(soup), kv_prompt)
-    print(kv_data, "kv_DATA")
     flat_data = flatten_dict(kv_data)
-    print("FLATTEN DICT", flat_data)
     formatted = "\n".join(f"{k}: {v}" for k, v in flat_data.items())    
-    print(formatted)
-    print("\n")
     filled_prompt = kv2_prompt.replace("{doc_body}", formatted)
-    print(filled_prompt)
     
+    #calling qwen
     messages = [{"role": "user", "content": filled_prompt}]
     text = tokenizer.apply_chat_template(
     messages,
     tokenize=False,
     add_generation_prompt=True,
-    enable_thinking=False # Switches between thinking and non-thinking modes. Default is True.
+    enable_thinking=False 
     )
     model_inputs = tokenizer([text], return_tensors="pt").to(model.device)
     
-    # conduct text completion
     generated_ids = model.generate(
         **model_inputs,
         max_new_tokens=32768
@@ -447,20 +346,3 @@ def process_invoice(markdown_html: str, tokenizer, model) -> dict:
         Summary=kv_result.Summary,
         Other_Important_Sections=kv_result.Other_Important_Sections,
     ).model_dump()
-
-    """
-    raw_kv = llm(full_kv_prompt, do_sample=False)[0]["generated_text"]
-    print(raw_kv)
-    
-    parsed_kv = _from_output(decoded)
-        
-    kv_result = KVResult(**kv_data)
-    
-    return InvoiceSchema(
-        Header=kv_result.Header,
-        Items=item_rows,
-        Payment_Terms=kv_result.Payment_Terms,
-        Summary=kv_result.Summary,
-        Other_Important_Sections=kv_result.Other_Important_Sections,
-    ).model_dump()
-    """
