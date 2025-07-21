@@ -11,7 +11,9 @@ from typing import Any
 from sklearn.metrics.pairwise import cosine_similarity
 from app.schemas import KVResult, InvoiceSchema
 from app.prompts import kv_prompt, kv2_prompt
+"""
 from app.ocr import ocr_model, ocr_processor
+"""
 from app.llm_engine import load_llm
 
 
@@ -262,6 +264,7 @@ def strip_prompt_from_output(text: str) -> str:
         return parts[1].strip()
     return text.strip()  
 
+"""
 def extract_invoice_kv_fields(markdown: str, prompt, max_new_tokens = 4096) -> dict:
     filled_prompt = prompt.replace("{doc_body}", markdown)
 
@@ -277,6 +280,7 @@ def extract_invoice_kv_fields(markdown: str, prompt, max_new_tokens = 4096) -> d
     result = ocr_processor.batch_decode(outputs, skip_special_tokens=True)[0]
     markdown_res = strip_prompt_from_output(result)
     return extract_json_from_output(markdown_res)
+"""
 
 def flatten_dict(d: dict, parent_key: str = '', sep: str = '.') -> dict:
     items = {}
@@ -306,11 +310,13 @@ def process_invoice(markdown_html: str, tokenizer, model) -> dict:
     rows = table_csv_to_dicts(csv_path, best_headers, skiprows=best_header_rows)
     item_rows, summary_rows = detect_summary_rows(rows)
 
-
+    """
     kv_data = extract_invoice_kv_fields(str(soup), kv_prompt)
     flat_data = flatten_dict(kv_data)
     formatted = "\n".join(f"{k}: {v}" for k, v in flat_data.items())    
-    filled_prompt = kv2_prompt.replace("{doc_body}", formatted)
+    """
+    
+    filled_prompt = kv2_prompt.replace("{doc_body}", str(soup))
     
     #calling qwen
     messages = [{"role": "user", "content": filled_prompt}]
