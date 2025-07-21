@@ -32,6 +32,7 @@ Tables:
 kv2_prompt = """
   You are given the markdown of an Invoice document with tables enclosed within '<table>' tags.
   Map all the fields in the below JSON schema to the closest value associated with it that is present in the markdown input.
+  For the Json key of "Main_Table", identify the main line table from the available tables containing the line items of the Invoice document and add all the items present in that table.
   Return it as follows:
   ~~~json
   {{
