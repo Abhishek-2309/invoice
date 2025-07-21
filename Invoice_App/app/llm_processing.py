@@ -359,7 +359,7 @@ def process_invoice(markdown_html: str, tokenizer, model) -> dict:
         repetition_penalty=1.1,
         use_cache=True
     )
-    output_ids = generated_ids[0][len(model_inputs.input_ids[0]):]
+    output_ids = generated_ids[0][len(model_inputs["input_ids"][0]):]
     full_output = tokenizer.decode(output_ids, skip_special_tokens=True)
     print(full_output)
     fields_json = extract_json_from_output(full_output)
