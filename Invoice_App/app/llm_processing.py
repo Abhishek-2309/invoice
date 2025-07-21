@@ -35,7 +35,7 @@ def process_invoice_dir(markdown: str):
     model, tokenizer = load_llm()
     return process_invoice(markdown, tokenizer, model)
 
-
+"""
 def extract_json_from_output(text: str) -> dict:
     match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
     if not match:
@@ -46,6 +46,24 @@ def extract_json_from_output(text: str) -> dict:
         except json.JSONDecodeError:
             pass
     raise ValueError("No valid JSON object found in LLM output.")
+"""
+
+def extract_json_from_output(text: str) -> dict:
+    match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
+    if not match:
+        match = re.search(r"(\{.*\})", text, re.DOTALL)
+    if match:
+        json_str = match.group(1)
+
+        # Fix common issues like unescaped backslashes
+        json_str = re.sub(r'(?<!\\)\\(?![\\/"bfnrtu])', r'\\\\', json_str)
+
+        try:
+            return json.loads(json_str)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"JSON parsing error: {e}")
+    raise ValueError("No valid JSON object found in LLM output.")
+
 
 
 def flatten_html_table_smart_span(html: str):
