@@ -1,15 +1,15 @@
-from bs4 import BeautifulSoup
+#from bs4 import BeautifulSoup
 import json
 import re
 import os
-import csv
+#import csv
 import numpy as np
 import pandas as pd
 import torch
 #import spacy
 from typing import Any
-from sklearn.metrics.pairwise import cosine_similarity
-from app.schemas import KVResult, InvoiceSchema
+#from sklearn.metrics.pairwise import cosine_similarity
+#from app.schemas import KVResult, InvoiceSchema
 from app.prompts import kv_prompt, kv2_prompt
 """
 from app.ocr import ocr_model, ocr_processor
@@ -339,28 +339,30 @@ def process_invoice(markdown_html: str, tokenizer, model) -> dict:
     filled_prompt = kv2_prompt.replace("{doc_body}", markdown_html)
     #calling qwen
     messages = [{"role": "user", "content": filled_prompt}]
-    input_ids = tokenizer.apply_chat_template(
-    messages,
-    tokenize=True,
-    add_generation_prompt=True,
-    enable_thinking=False,
-    return_tensors="pt"
+    model_inputs = tokenizer.apply_chat_template(
+        messages,
+        tokenize=True,
+        add_generation_prompt=True,
+        enable_thinking=False,
+        return_tensors="pt"
     )
-    model_inputs = {
-        "input_ids": input_ids.to(model.device)
-    }  
+    
+    model_inputs = {k: v.to(model.device) for k, v in model_inputs.items()}
+    
     generated_ids = model.generate(
         **model_inputs,
-        max_new_tokens=4096,
-        do_sample = False,
-        temperature = 0.0,
-        top_p = 1.0,
-        top_k = 50,
+        max_new_tokens=2048,
+        do_sample=False,
+        temperature=0.0,
+        top_p=1.0,
+        top_k=50,
         repetition_penalty=1.1,
         use_cache=True
     )
-    output_ids = generated_ids[0][len(model_inputs["input_ids"][0]):]
+    
+    output_ids = generated_ids[0][model_inputs["input_ids"].shape[1]:]
     full_output = tokenizer.decode(output_ids, skip_special_tokens=True)
+
     print(full_output)
     fields_json = extract_json_from_output(full_output)
 
