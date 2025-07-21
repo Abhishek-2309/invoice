@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from app.llm_processing import process_invoice_dir
 from app.ocr import ocr_page_with_nanonets
 from app.Folder_Processing import process_zip
-
+from typing import Dict
 
 UPLOAD_DIR = "uploads"
 JSON_OUTPUT_DIR = os.path.join(UPLOAD_DIR, "json_results")
