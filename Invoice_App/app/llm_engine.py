@@ -10,8 +10,9 @@ def load_llm():
     if model is None or tokenizer is None:
         model, tokenizer = FastModel.from_pretrained(
             model_name="unsloth/Qwen3-8B-unsloth-bnb-4bit",
-            max_seq_length=32768,
+            max_seq_length=8192,
             load_in_4bit = True,
-            load_in_8bit=False  # Or False for better accuracy
+            load_in_8bit=False, 
+            device_map = "auto" # Or False for better accuracy
         )
     return model, tokenizer
