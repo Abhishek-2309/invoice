@@ -1,4 +1,4 @@
-from unsloth import FastModel, FastTokenizer
+from unsloth import FastModel
 import torch
 
 model = None
