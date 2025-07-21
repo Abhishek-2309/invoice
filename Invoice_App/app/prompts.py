@@ -51,6 +51,16 @@ kv2_prompt = """
         "GSTIN": "..."
       }}
     }},
+    "Main_Table":
+          {{
+        "items": [
+          {{ "<column1>": "value", ... }},
+          ...
+        ],
+        "summary_row": {{
+          "<total_field1>": "value"
+      }}
+    }},
     "Payment Terms": {{
       "Bank_details": {{
         "Bank Name": "...",
