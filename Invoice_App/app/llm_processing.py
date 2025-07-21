@@ -339,7 +339,7 @@ def process_invoice(markdown_html: str, tokenizer, model) -> dict:
     filled_prompt = kv2_prompt.replace("{doc_body}", markdown_html)
     #calling qwen
     messages = [{"role": "user", "content": filled_prompt}]
-    text = tokenizer.apply_chat_template(
+    model_inputs = tokenizer.apply_chat_template(
     messages,
     tokenize=True,
     add_generation_prompt=True,
