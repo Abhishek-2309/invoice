@@ -65,7 +65,7 @@ def extract_json_from_output(text: str) -> dict:
     raise ValueError("No valid JSON object found in LLM output.")
 
 
-
+"""
 def flatten_html_table_smart_span(html: str):
     soup = BeautifulSoup(html, "html.parser")
     table = soup.find("table")
@@ -275,7 +275,7 @@ def extract_best_table_and_headers(html_tables: list[str]) -> tuple[str, list[st
                 best_header_row_index = i
 
     return best_table, best_headers, best_header_row_index + 1 
-
+"""
 def strip_prompt_from_output(text: str) -> str:
     split_pattern = r"(?:^|\n)assistant\s*\n"
     parts = re.split(split_pattern, text, maxsplit=1)
@@ -299,7 +299,7 @@ def extract_invoice_kv_fields(markdown: str, prompt, max_new_tokens = 4096) -> d
     result = ocr_processor.batch_decode(outputs, skip_special_tokens=True)[0]
     markdown_res = strip_prompt_from_output(result)
     return extract_json_from_output(markdown_res)
-"""
+
 
 def flatten_dict(d: dict, parent_key: str = '', sep: str = '.') -> dict:
     items = {}
@@ -310,7 +310,7 @@ def flatten_dict(d: dict, parent_key: str = '', sep: str = '.') -> dict:
         else:
             items[new_key] = v
     return items
-
+"""
 def process_invoice(markdown_html: str, tokenizer, model) -> dict:
     """
     soup = BeautifulSoup(markdown_html, "html.parser")
