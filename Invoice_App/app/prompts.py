@@ -30,53 +30,53 @@ Tables:
 
 
 kv2_prompt = """
-You are given a set of fields and their values extracted from an invoice document.
-Map all the fields in the below JSON schema to the closest field and value associated with it
-Return it as follows:
-~~~json
-{{
-  "Header": {{
-    "Invoice Number": "...",
-    "Invoice Date": "...",
-    "Seller's Information": {{
-      "Company Name": "...",
-      "Address": "...",
-      "Contact": "...",
-      "GSTIN": "..."
+  You are given the markdown of an Invoice document with tables enclosed within '<table>' tags.
+  Map all the fields in the below JSON schema to the closest value associated with it that is present in the markdown input.
+  Return it as follows:
+  ~~~json
+  {{
+    "Header": {{
+      "Invoice Number": "...",
+      "Invoice Date": "...",
+      "Seller's Information": {{
+        "Company Name": "...",
+        "Address": "...",
+        "Contact": "...",
+        "GSTIN": "..."
+      }},
+      "Buyer's Information": {{
+        "Company Name": "...",
+        "Address": "...",
+        "Contact": "...",
+        "GSTIN": "..."
+      }}
     }},
-    "Buyer's Information": {{
-      "Company Name": "...",
-      "Address": "...",
-      "Contact": "...",
-      "GSTIN": "..."
+    "Payment Terms": {{
+      "Bank_details": {{
+        "Bank Name": "...",
+        "IFSC_code": "...",
+        "bank_account_no": "..."
+      }},
+      "Payment Due Date": "...",
+      "Payment Methods": "..."
+    }},
+    "Summary": {{
+      "Subtotal": "...",
+      "Taxes": "...",
+      "Discounts": "...",
+      "Total Amount Due": "..."
+    }},
+    "Other Important Sections": {{
+      "Terms and conditions": "...",
+      "Notes/Comments": "...",
+      "Signature": "..."
     }}
-  }},
-  "Payment Terms": {{
-    "Bank_details": {{
-      "Bank Name": "...",
-      "IFSC_code": "...",
-      "bank_account_no": "..."
-    }},
-    "Payment Due Date": "...",
-    "Payment Methods": "..."
-  }},
-  "Summary": {{
-    "Subtotal": "...",
-    "Taxes": "...",
-    "Discounts": "...",
-    "Total Amount Due": "..."
-  }},
-  "Other Important Sections": {{
-    "Terms and conditions": "...",
-    "Notes/Comments": "...",
-    "Signature": "..."
   }}
-}}
-~~~
-Extract only from document contents, If relevant values are not found, leave empty.
-Fields:
-{doc_body}
-"""
+  ~~~
+  Extract only from document contents, If relevant values are not found, leave empty.
+  Markdown:
+  {doc_body}
+  """
 
 kv_prompt = """
 You are given the body of an invoice (in HTML/Markdown).
