@@ -341,15 +341,21 @@ def process_invoice(markdown_html: str, tokenizer, model) -> dict:
     messages = [{"role": "user", "content": filled_prompt}]
     text = tokenizer.apply_chat_template(
     messages,
-    tokenize=False,
+    tokenize=True,
     add_generation_prompt=True,
-    enable_thinking=False 
-    )
-    model_inputs = tokenizer([text], return_tensors="pt").to(model.device)
+    enable_thinking=False,
+    return_tensors="pt"
+    ).to(model.device)
     
     generated_ids = model.generate(
         **model_inputs,
-        max_new_tokens=32768
+        max_new_tokens=4096,
+        do_sample = False,
+        temperature = 0.0,
+        top_p = 1.0,
+        top_k = 50,
+        repetition_penalty=1.1,
+        use_cache=True
     )
     output_ids = generated_ids[0][len(model_inputs.input_ids[0]):]
     full_output = tokenizer.decode(output_ids, skip_special_tokens=True)
