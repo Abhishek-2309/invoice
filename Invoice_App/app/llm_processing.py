@@ -30,6 +30,7 @@ def process_invoice(markdown_html: str, tokenizer, model) -> dict:
         tokenize=True,
         add_generation_prompt=True,
         return_tensors="pt",
+        enable_thinking = False,
         padding=True,     
         max_length = 8192
     ).to(model.device)
