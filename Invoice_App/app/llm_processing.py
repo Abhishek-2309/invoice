@@ -25,28 +25,24 @@ def process_invoice_dir(markdown: str):
 def process_invoice(markdown_html: str, tokenizer, model) -> dict:
     filled_prompt = kv2_prompt.replace("{doc_body}", markdown_html)
     messages = [{"role": "user", "content": filled_prompt}]
-    inputs = tokenizer.apply_chat_template(
+    input_ids = tokenizer.apply_chat_template(
         messages,
         tokenize=True,
         add_generation_prompt=True,
-        return_tensors="pt",
         enable_thinking = False,
-        padding=True,     
-        max_length = 8192
-    ).to(model.device)
-    
-    input_ids = inputs["input_ids"]
-    attention_mask = inputs["attention_mask"]
-
+        return_tensors="pt"
+    )
+    model_inputs = {
+        "input_ids": input_ids.to(model.device)
+    }  
     generated_ids = model.generate(
-        input_ids=input_ids,
-        attention_mask = attention_mask,
+        **model_inputs,
         max_new_tokens=4096,
         do_sample=False,
-        temperature=0.0,
-        top_p=1.0,
-        top_k = 50,
-        repetition_penalty=1.1,
+        temperature=0.7,
+        top_p=0.8,
+        top_k = 20,
+        MinP = 0,
         use_cache = True
     )
     output_ids = generated_ids[0][len(model_inputs["input_ids"][0]):]
