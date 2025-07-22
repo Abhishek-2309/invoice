@@ -3,6 +3,7 @@ import json
 from typing import Dict
 from bs4 import BeautifulSoup
 from app.llm_engine import load_llm
+from app.schemas import KVResult, InvoiceSchema
 from app.prompts import kv2_prompt
 
 def extract_json_from_output(text: str) -> dict:
@@ -48,4 +49,11 @@ def process_invoice(markdown_html: str, tokenizer, model) -> dict:
     full_output = tokenizer.decode(output_ids, skip_special_tokens=True)
     print(full_output)
     fields_json = extract_json_from_output(full_output)
-    return fields_json
+    kv_result = KVResult(**fields_json)
+    return InvoiceSchema(
+	    Header=kv_result.Header,
+	    Main_Table=kv_result.Main_Table,
+	    Payment_Terms=kv_result.Payment_Terms,
+	    Summary=kv_result.Summary,
+	    Other_Important_Sections=kv_result.Other_Important_Sections,
+	).model_dump()
