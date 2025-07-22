@@ -3,6 +3,7 @@ import shutil
 import tempfile
 import uuid
 from fastapi import APIRouter, UploadFile, File, HTTPException
+from pdf2image import convert_from_path
 from fastapi.responses import JSONResponse
 from app.llm_processing import process_invoice_dir
 from app.ocr import ocr_page_with_nanonets
