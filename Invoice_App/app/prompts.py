@@ -1,16 +1,57 @@
 kv2_prompt = """
-You are given the markdown of an Invoice document with tables enclosed within '<table>' tags.
-Extract and map the following fields alone into a strict JSON format:
-- Invoice_Number
-- Invoice_Date
-- Seller's_Info (containing Company_Name, Address, Contact_Details, GSTIN)
-- Buyer's_Info (containing Buyer's Company_Name(can even be Buyer name), Address, Contact_Details, GSTIN)
-- Main_Table (Refers to the main table containing all the line items of the invoice, It should only contain only those rows of the main table having line items, do NOT include Totals and others inside.)
-- Payment_Terms (containing Bank_Details(Bank_Name, Bank_IFSC_Code, Bank_Account_No), and other payment details such as payment_due_date and payment_methods)
-- Summary (containing Subtotal(refers to net amount of line items before taxes), Taxes(total value of taxes), Discounts, Total_Amount_Due(refers to the Final amount to be paid))
-- Other_Important_Sections(containing Terms_and_Conditions, Notes/Comments, Signature)
-
-Return a JSON object with these fields. If a field is not present, leave it empty.
-Markdown:
-{doc_body}
-"""
+  You are given the markdown of an Invoice document with tables enclosed within '<table>' tags.
+  Map all the fields in the below JSON schema to the closest value associated with it that is present in the markdown input.
+  For the Json key of "Main_Table", identify the main line table from the available tables containing the line items of the Invoice document and only add all the items present in that table. Do Not include
+  totals and others.
+  Return it as follows:
+  ~~~json
+  {{
+    "Header": {{
+      "Invoice Number": "...",
+      "Invoice Date": "...",
+      "Seller's Information": {{
+        "Company Name": "...",
+        "Address": "...",
+        "Contact": "...",
+        "GSTIN": "..."
+      }},
+      "Buyer's Information": {{
+        "Company Name": "...",
+        "Address": "...",
+        "Contact": "...",
+        "GSTIN": "..."
+      }}
+    }},
+    "Main_Table":
+          {{
+        "items": [
+          {{ "<column1>": "value", ... }},
+          ...
+        ]
+    }},
+    "Payment Terms": {{
+      "Bank_details": {{
+        "Bank Name": "...",
+        "IFSC_code": "...",
+        "bank_account_no": "..."
+      }},
+      "Payment Due Date": "...",
+      "Payment Methods": "..."
+    }},
+    "Summary": {{
+      "Subtotal": "...",
+      "Taxes": "...",
+      "Discounts": "...",
+      "Total Amount Due": "..."
+    }},
+    "Other Important Sections": {{
+      "Terms and conditions": "...",
+      "Notes/Comments": "...",
+      "Signature": "..."
+    }}
+  }}
+  ~~~
+  Extract only from document contents, If relevant values are not found, leave empty.
+  Markdown:
+  {doc_body}
+  """
