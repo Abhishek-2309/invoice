@@ -1,7 +1,6 @@
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Dict, Any, Optional
 
-
 class PartyInfo(BaseModel):
     model_config = ConfigDict(extra='allow')
     Company_Name: Optional[str] = Field(None, alias="Company Name")
@@ -12,7 +11,7 @@ class PartyInfo(BaseModel):
 
 class HeaderSection(BaseModel):
     model_config = ConfigDict(extra='allow')
-    Unique_Invoice_Number: Optional[str] = Field(None, alias="Unique Invoice Number")
+    Unique_Invoice_Number: Optional[str] = Field(None, alias="Invoice Number")
     Invoice_Date: Optional[str] = Field(None, alias="Invoice Date")
     Seller_Info: Optional[PartyInfo] = Field(None, alias="Seller's Information")
     Buyer_Info: Optional[PartyInfo] = Field(None, alias="Buyer's Information")
@@ -40,15 +39,14 @@ class OtherImportantSections(BaseModel):
     Signature: Optional[str] = None
 
 
-class TableResult(BaseModel):
-    main_table_index: int
+class MainTable(BaseModel):
     items: List[Dict[str, Any]]
-    summary_row: Optional[Dict[str, Any]] = None
     model_config = ConfigDict(extra='allow')
 
 
 class KVResult(BaseModel):
     Header: HeaderSection
+    Main_Table: Optional[MainTable] = None
     Payment_Terms: PaymentTerms = Field(..., alias="Payment Terms")
     Summary: SummarySection
     Other_Important_Sections: OtherImportantSections = Field(..., alias="Other Important Sections")
@@ -58,7 +56,7 @@ class KVResult(BaseModel):
 class InvoiceSchema(BaseModel):
     model_config = ConfigDict(extra='allow')
     Header: Optional[HeaderSection]
-    Items: Optional[List[Dict[str, Any]]]
+    Main_Table: Optional[MainTable]
     Payment_Terms: Optional[PaymentTerms] = Field(None, alias="Payment Terms")
     Summary: Optional[SummarySection]
     Other_Important_Sections: Optional[OtherImportantSections] = Field(None, alias="Other Important Sections")
