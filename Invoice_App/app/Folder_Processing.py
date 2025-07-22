@@ -6,6 +6,7 @@ import os
 import shutil
 import zipfile
 import tempfile
+import torch
 import json
 import uuid
 from typing import Dict
@@ -40,6 +41,7 @@ def process_zip(zip_file: UploadFile, output_dir: str) -> Dict[str, dict]:
                             img_path = os.path.join(tmpdir, f"{uuid.uuid4().hex}.png")
                             img.save(img_path)
                             full_markdown += ocr_page_with_nanonets(img_path) + "\n"
+                            torch.cuda.empty_cache()
                         output = process_invoice_dir(full_markdown)
 
                     else:
