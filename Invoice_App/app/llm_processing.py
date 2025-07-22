@@ -45,7 +45,7 @@ def process_invoice(markdown_html: str, tokenizer, model) -> dict:
         do_sample=False,
         temperature=0.0,
         top_p=1.0,
-        top_k = 50
+        top_k = 50,
         repetition_penalty=1.1,
         use_cache = True
     )
