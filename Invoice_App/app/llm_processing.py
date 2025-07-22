@@ -42,7 +42,6 @@ def process_invoice(markdown_html: str, tokenizer, model) -> dict:
         temperature=0.7,
         top_p=0.8,
         top_k = 20,
-        MinP = 0,
         use_cache = True
     )
     output_ids = generated_ids[0][len(model_inputs["input_ids"][0]):]
