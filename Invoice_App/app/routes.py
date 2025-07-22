@@ -28,7 +28,6 @@ async def upload_invoice(file: UploadFile = File(...)):
                 shutil.copyfileobj(file.file, f)
 
             full_markdown = ""
-
             if ext == ".pdf":
                 images = convert_from_path(temp_path, dpi=300)
                 for i, img in enumerate(images):
@@ -40,8 +39,8 @@ async def upload_invoice(file: UploadFile = File(...)):
 
             structured_json = process_invoice_dir(full_markdown)
             return structured_json
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Processing failed: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Processing failed: {e}")
 
 @router.post("/upload_zip")
 async def upload_zip(file: UploadFile = File(...)) -> Dict[str, dict]:
