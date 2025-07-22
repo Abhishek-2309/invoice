@@ -26,6 +26,7 @@ def process_zip(zip_file: UploadFile, output_dir: str) -> Dict[str, dict]:
                 try:
                     if ext in [".jpg", ".jpeg", ".png", ".tiff", ".bmp"]:
                         markdown = ocr_page_with_nanonets(full_path)
+                        print(markdown)
                         output = process_invoice_dir(markdown)
                     elif ext == ".pdf":
                         images = convert_from_path(full_path, dpi=150)
@@ -34,6 +35,7 @@ def process_zip(zip_file: UploadFile, output_dir: str) -> Dict[str, dict]:
                             img_path = os.path.join(tmpdir, f"{name}_page_{i}.png")
                             img.save(img_path)
                             full_markdown += ocr_page_with_nanonets(img_path) + "\n\n"
+                        print(full_markdown)
                         output = process_invoice_dir(full_markdown)
                     else:
                         output = {"error": f"Unsupported file type: {ext}"}
