@@ -1,16 +1,13 @@
 from unsloth import FastModel
-import torch
+from functools import lru_cache
 
-model = None
-tokenizer = None
-
+@lru_cache()
 def load_llm():
-    global model, tokenizer
-    if model is None or tokenizer is None:
-        model, tokenizer = FastModel.from_pretrained(
-            "unsloth/Qwen3-8B-unsloth-bnb-4bit",
-            max_seq_length=8192,
-            load_in_4bit=True,
-            device_map="auto"
-        )
-    return model, tokenizer
+    model, tokenizer = FastModel.from_pretrained(
+        model_name="unsloth/Qwen3-8B-unsloth-bnb-4bit",
+        max_seq_length=8192,
+        load_in_4bit=True,
+        load_in_8bit=False,
+        device_map="auto"
+    )
+    return model.eval(), tokenizer
