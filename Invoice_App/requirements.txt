@@ -1,6 +1,7 @@
 # === Core Server ===
 fastapi
-uvicorn[standard]
+gunicorn
+uvicorn
 
 # === File Handling & PDFs ===
 pdf2image
