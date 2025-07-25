@@ -29,5 +29,7 @@ def ocr_page_with_nanonets(image_path: str, max_new_tokens=4000) -> str:
     with torch.no_grad():
         outputs = ocr_model.generate(**inputs, max_new_tokens=max_new_tokens, do_sample=False)
     markdown = ocr_processor.batch_decode(outputs, skip_special_tokens=True)[0]
+    del inputs
+    del outputs
     torch.cuda.empty_cache()
     return strip_prompt_from_output(markdown)
