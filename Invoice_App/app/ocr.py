@@ -26,7 +26,8 @@ def ocr_page_with_nanonets(image_path: str, max_new_tokens=4000) -> str:
     ]
     text = ocr_processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
     inputs = ocr_processor(text=[text], images=[image], return_tensors="pt", padding=True).to(ocr_model.device)
-    outputs = ocr_model.generate(**inputs, max_new_tokens=max_new_tokens, do_sample=False)
+    with torch.no_grad():
+        outputs = ocr_model.generate(**inputs, max_new_tokens=max_new_tokens, do_sample=False)
     markdown = ocr_processor.batch_decode(outputs, skip_special_tokens=True)[0]
     torch.cuda.empty_cache()
     return strip_prompt_from_output(markdown)
