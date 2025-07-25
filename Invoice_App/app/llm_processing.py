@@ -37,17 +37,21 @@ def process_invoice(markdown_html: str, tokenizer, model) -> dict:
     model_inputs = {
         "input_ids": input_ids.to(model.device)
     }  
-    generated_ids = model.generate(
-        **model_inputs,
-        max_new_tokens=4096,
-        do_sample=False,
-        temperature=0.7,
-        top_p=0.8,
-        top_k = 20,
-        use_cache = True
-    )
-    output_ids = generated_ids[0][len(model_inputs["input_ids"][0]):]
-    full_output = tokenizer.decode(output_ids, skip_special_tokens=True)
+
+	with torch.no_grad():
+	    generated_ids = model.generate(
+	        **model_inputs,
+	        max_new_tokens=4096,
+	        do_sample=False,
+	        temperature=0.7,
+	        top_p=0.8,
+	        top_k=20,
+	        use_cache=True
+	    )
+	
+	    output_ids = generated_ids[0][len(model_inputs["input_ids"][0]):]
+	    full_output = tokenizer.decode(output_ids, skip_special_tokens=True)
+
     torch.cuda.empty_cache()
     print(full_output)
     fields_json = extract_json_from_output(full_output)
