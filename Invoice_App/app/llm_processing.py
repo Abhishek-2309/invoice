@@ -37,7 +37,6 @@ def process_invoice(markdown_html: str, tokenizer, model) -> dict:
     model_inputs = {
         "input_ids": input_ids.to(model.device)
     }  
-
 	with torch.no_grad():
 	    generated_ids = model.generate(
 	        **model_inputs,
