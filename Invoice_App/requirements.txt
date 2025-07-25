@@ -2,23 +2,23 @@
 fastapi
 gunicorn
 uvicorn
+httpx
+jinja2
 
 # === File Handling & PDFs ===
 pdf2image
 pillow
 python-multipart
+opencv-python-headless
 
 # === OCR (Vision Language Model) ===
 unsloth
 transformers>=4.40.0  # for unsloth compatibility
-torch>=2.1.0
+torch==2.2.2
 accelerate
-unsloth>=0.0.25
+unsloth>=2024.5.7
 bitsandbytes>=0.42.0
 safetensors
-
-# === Optional for PDF2Image (Poppler dependency) ===
-# Note: poppler-utils must be installed at OS level (not in pip)
 
 # === Utility ===
 typing-extensions
