@@ -14,9 +14,9 @@ opencv-python-headless
 # === OCR (Vision Language Model) ===
 unsloth
 transformers # for unsloth compatibility
-torch==2.6.0
+torch
 accelerate
-bitsandbytes>=0.42.0
+bitsandbytes
 safetensors
 
 # === Utility ===
