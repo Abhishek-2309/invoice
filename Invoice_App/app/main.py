@@ -1,4 +1,5 @@
 import os
+import unsloth
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 from fastapi import FastAPI
 from app.routes import router
