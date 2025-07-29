@@ -16,7 +16,6 @@ unsloth
 transformers>=4.40.0  # for unsloth compatibility
 torch>=2.1.0
 accelerate
-unsloth
 bitsandbytes>=0.42.0
 safetensors
 
