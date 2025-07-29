@@ -15,6 +15,7 @@ def strip_prompt_from_output(text: str) -> str:
     parts = re.split(split_pattern, text, maxsplit=1)
     if len(parts) == 2:
         return parts[1].strip()
+    print(text.strip())
     return text.strip()
 
 def ocr_page_with_nanonets(image_path: str, max_new_tokens=4000) -> str:
