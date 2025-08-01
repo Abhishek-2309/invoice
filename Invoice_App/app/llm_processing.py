@@ -27,7 +27,7 @@ def process_invoice_dir(markdown: str):
 def process_invoice(markdown_html: str, tokenizer, model) -> dict:
     filled_prompt = kv2_prompt.replace("{doc_body}", markdown_html)
     messages = [{"role": "user", "content": filled_prompt}]
-    """
+    
     input_ids = tokenizer.apply_chat_template(
         messages,
         tokenize=True,
@@ -75,7 +75,7 @@ def process_invoice(markdown_html: str, tokenizer, model) -> dict:
 
         output_ids = generated_ids[0][model_inputs["input_ids"].shape[1]:]
         full_output = tokenizer.decode(output_ids, skip_special_tokens=True)
-        
+    """
     del model_inputs
     del generated_ids
     del output_ids
