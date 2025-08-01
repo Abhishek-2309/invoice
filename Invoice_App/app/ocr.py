@@ -5,14 +5,16 @@ import torch
 import re
 
 ocr_model_id = "nanonets/Nanonets-OCR-s"
-bnb_config = BitsAndBytesConfig(load_in_8bit=True)
+bnb_config = BitsAndBytesConfig(load_in_4bit=True)
 ocr_model = AutoModelForImageTextToText.from_pretrained(
     ocr_model_id,
     quantization_config=bnb_config,
     device_map="auto"
 ).eval()
+
 ocr_tokenizer = AutoTokenizer.from_pretrained(ocr_model_id)
 ocr_processor = AutoProcessor.from_pretrained(ocr_model_id)
+ocr_model = torch.compile(ocr_model)
 
 def strip_prompt_from_output(text: str) -> str:
     split_pattern = r"(?:^|\n)assistant\s*\n"
@@ -29,7 +31,7 @@ def ocr_page_with_nanonets(image_path: str, max_new_tokens=4000) -> str:
         {"role": "user", "content": [{"type": "image", "image": f"file://{image_path}"}, {"type": "text", "text": prompt}]}
     ]
     text = ocr_processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-    inputs = ocr_processor(text=[text], images=[image], return_tensors="pt", padding=True).to(ocr_model.device)
+    inputs = ocr_processor(text=[text], images=[image], return_tensors="pt", padding=False).to(ocr_model.device)
     with torch.no_grad():
         outputs = ocr_model.generate(**inputs, max_new_tokens=max_new_tokens, do_sample=False)
     markdown = ocr_processor.batch_decode(outputs, skip_special_tokens=True)[0]
