@@ -1,6 +1,6 @@
 from PIL import Image
 from transformers import AutoModelForImageTextToText, AutoTokenizer, AutoProcessor
-#from transformers import BitsAndBytesConfig
+from transformers import BitsAndBytesConfig
 import torch
 import re
 
