@@ -7,7 +7,7 @@ import re
 ocr_model_id = "nanonets/Nanonets-OCR-s"
 """
 bnb_config = BitsAndBytesConfig(load_in_4bit=True)
-
+"""
 bnb_config = BitsAndBytesConfig(
     load_in_4bit=True,
     bnb_4bit_compute_dtype=torch.float16,  # L4 supports float16 natively
@@ -23,6 +23,7 @@ ocr_model = AutoModelForImageTextToText.from_pretrained(
 ocr_model = AutoModelForImageTextToText.from_pretrained(
     ocr_model_id, torch_dtype="auto", device_map="auto"
 ).eval()
+"""
 
 ocr_tokenizer = AutoTokenizer.from_pretrained(ocr_model_id)
 ocr_processor = AutoProcessor.from_pretrained(ocr_model_id)
