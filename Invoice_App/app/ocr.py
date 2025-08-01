@@ -28,6 +28,7 @@ def strip_prompt_from_output(text: str) -> str:
     split_pattern = r"(?:^|\n)assistant\s*\n"
     parts = re.split(split_pattern, text, maxsplit=1)
     if len(parts) == 2:
+        print(parts)
         return parts[1].strip()
     return text.strip()
 
