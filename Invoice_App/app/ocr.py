@@ -19,7 +19,6 @@ def strip_prompt_from_output(text: str) -> str:
     parts = re.split(split_pattern, text, maxsplit=1)
     if len(parts) == 2:
         return parts[1].strip()
-    print(text.strip())
     return text.strip()
 
 def ocr_page_with_nanonets(image_path: str, max_new_tokens=4000) -> str:
@@ -36,5 +35,4 @@ def ocr_page_with_nanonets(image_path: str, max_new_tokens=4000) -> str:
     markdown = ocr_processor.batch_decode(outputs, skip_special_tokens=True)[0]
     del inputs
     del outputs
-    torch.cuda.empty_cache()
     return strip_prompt_from_output(markdown)
