@@ -1,5 +1,5 @@
 kv2_prompt = """
-What is Invoice no? Markdown:
+What is Invoice no? Return in JSON. Markdown:
 {doc_body}
 """"
 
