@@ -1,7 +1,7 @@
 kv2_prompt = """
 What is Invoice no? Return in JSON. Markdown:
 {doc_body}
-""""
+"""
 
 kv_prompt = """
   You are given the markdown of an Invoice document with tables enclosed within '<table>' tags.
