@@ -44,7 +44,7 @@ def process_invoice(markdown_html: str, tokenizer, model) -> dict:
         generated_ids = model.generate(
             **model_inputs,
             max_new_tokens=4096,
-            do_sample=False,
+            do_sample=True#False,
             temperature=0.7,
             top_p=0.8,
             top_k=20,
