@@ -27,7 +27,6 @@ def process_invoice_dir(markdown: str):
 def process_invoice(markdown_html: str, tokenizer, model) -> dict:
     filled_prompt = kv2_prompt.replace("{doc_body}", markdown_html)
     messages = [{"role": "user", "content": filled_prompt}]
-    print(messages)
     input_ids = tokenizer.apply_chat_template(
         messages,
         tokenize=True,
@@ -58,7 +57,6 @@ def process_invoice(markdown_html: str, tokenizer, model) -> dict:
     del generated_ids
     del output_ids
     torch.cuda.empty_cache()
-    print(full_output)
 
     fields_json = extract_json_from_output(full_output)
     kv_result = KVResult(**fields_json)
