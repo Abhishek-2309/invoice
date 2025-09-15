@@ -44,16 +44,16 @@ tenacity: Retry logic
 uuid: Unique IDs for tracking/debugging
 
 Project Structure
-app/
-├── main.py              # FastAPI entrypoint, /healthz endpoint
-├── routes.py            # API endpoints (/extract, /extract-batch)
-├── schemas.py           # Pydantic models for JSON responses
-├── prompts.py           # System prompt + extraction instructions
-├── ocr.py               # OCR provider (Nanonets)
-├── llm_engine.py        # Model loader and inference wrapper
-├── llm_processing.py    # Prompt builder + JSON postprocessing
-├── Folder_Processing.py # Utility for bulk folder-based processing
-├── requirements.txt     # Dependencies
+
+main.py - FastAPI entrypoint
+routes.py - API endpoints 
+schemas.py - Pydantic models for JSON responses
+prompts.py - Invoice prompt 
+ocr.py - nanonets-ocr-s extrction  
+llm_engine.py - Model loading for Qwen LLM
+llm_processing.py - Prompt builder + JSON postprocessing
+Folder_Processing.py - Utility for bulk folder-based processing
+requirements.txt - Dependencies
 
 How It Works
 Flow
