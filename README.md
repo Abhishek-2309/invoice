@@ -46,13 +46,21 @@ uuid: Unique IDs for tracking/debugging
 Project Structure
 
 main.py - FastAPI entrypoint
+
 routes.py - API endpoints 
+
 schemas.py - Pydantic models for JSON responses
+
 prompts.py - Invoice prompt 
+
 ocr.py - nanonets-ocr-s extrction  
+
 llm_engine.py - Model loading for Qwen LLM
+
 llm_processing.py - Prompt builder + JSON postprocessing
+
 Folder_Processing.py - Utility for bulk folder-based processing
+
 requirements.txt - Dependencies
 
 How It Works
