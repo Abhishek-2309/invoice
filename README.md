@@ -1,4 +1,4 @@
-#Invoice Handler
+#Invoice-Handler
 
 This project provides a FastAPI-based service for automatically extracting structured data from invoices, with the help of Nanonets-ocr-s and a quantized large language model (LLM) - Qwen3:8B to parse invoice text and tables into a  JSON schema.
 
