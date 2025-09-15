@@ -1,22 +1,10 @@
 from PIL import Image
 from transformers import AutoModelForImageTextToText, AutoTokenizer, AutoProcessor
-#from transformers import BitsAndBytesConfig
 import torch
 import re
 
 ocr_model_id = "nanonets/Nanonets-OCR-s"
-"""
-bnb_config = BitsAndBytesConfig(
-    load_in_4bit=True,
-    bnb_4bit_compute_dtype=torch.float16,  # L4 supports float16 natively
-    bnb_4bit_use_double_quant=True
-)
-ocr_model = AutoModelForImageTextToText.from_pretrained(
-    ocr_model_id,
-    quantization_config=bnb_config,
-    device_map="auto"
-).eval()
-"""
+
 ocr_model = AutoModelForImageTextToText.from_pretrained(
     ocr_model_id, torch_dtype="auto", device_map="auto"
 ).eval()
