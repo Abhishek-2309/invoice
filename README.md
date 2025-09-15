@@ -78,22 +78,7 @@ Validation → JSON parsed & validated via Pydantic.
 
 Response → Clean structured JSON returned to client.
 
-Example Prompt
-<|system|>
-You are a precise invoice information extractor...
-</s>
-<|user|>
-Return JSON with keys:
-- invoice_number
-- invoice_date
-...
-OCR_TEXT:
-Invoice No: INV12345 ...
-<TABLE>
-Item | Qty | Price | Total
-</TABLE>
-</s>
-<|assistant|>
+
 
 
 Deployment
