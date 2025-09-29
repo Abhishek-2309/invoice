@@ -1,70 +1,32 @@
 import re
 import json
-import torch
 from typing import Dict
-from bs4 import BeautifulSoup
-from app.llm_engine import load_llm
-from app.schemas import KVResult, InvoiceSchema
-from app.prompts import kv2_prompt
+from app.schemas import InvoiceSchema
+from app.prompts import kv_prompt
+from app.llm_engine import chat
 
-def extract_json_from_output(text: str) -> dict:
-    match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
-    if not match:
-        match = re.search(r"(\{.*\})", text, re.DOTALL)
-    if match:
-        json_str = match.group(1)
-        json_str = re.sub(r'(?<!\\)\\(?![\\/"bfnrtu])', r'\\\\', json_str)
-        try:
-            return json.loads(json_str)
-        except json.JSONDecodeError as e:
-            raise ValueError(f"JSON parsing error: {e}")
-    raise ValueError("No valid JSON object found in LLM output.")
+JSON_FENCE = re.compile(r"```(?:json)?\s*(\{[\s\S]*?\})\s*```", re.IGNORECASE)
+BRACE_GRAB = re.compile(r"(\{[\s\S]*\})")
 
-def process_invoice_dir(markdown: str):
-    model, tokenizer = load_llm()
-    return process_invoice(markdown, tokenizer, model)
+def _extract_json_from_output(text: str) -> Dict:
+    m = JSON_FENCE.search(text) or BRACE_GRAB.search(text)
+    if not m:
+        raise ValueError("Model returned no JSON.")
+    raw = m.group(1)
+    raw = re.sub(r"(?<!\\)\\(?![\\/\"bfnrtu])", r"\\\\", raw)
+    return json.loads(raw)
 
-def process_invoice(markdown_html: str, tokenizer, model) -> dict:
-    filled_prompt = kv2_prompt.replace("{doc_body}", markdown_html)
-    messages = [{"role": "user", "content": filled_prompt}]
-    input_ids = tokenizer.apply_chat_template(
-        messages,
-        tokenize=True,
-        add_generation_prompt=True,
-        enable_thinking=False,
-        return_tensors="pt"
-    )
+def process_invoice_dir(full_markdown: str) -> Dict:
+    user_prompt = kv_prompt.format(doc_body=full_markdown)
+    messages = [
+        {"role": "system", "content": "You convert invoice markdown into a single strict JSON object that matches the schema. Return only JSON."},
+        {"role": "user", "content": user_prompt},
+    ]
+    model_out = chat(messages, temperature=0.0, max_tokens=2000)
+    data = _extract_json_from_output(model_out)
 
-    model_inputs = {
-        "input_ids": input_ids.to(model.device)
-    }
-
-    with torch.no_grad():
-        generated_ids = model.generate(
-            **model_inputs,
-            max_new_tokens=4096,
-            do_sample=True, #False
-            temperature=0.7,
-            top_p=0.8,
-            top_k=20,
-            use_cache=True
-        )
-
-        output_ids = generated_ids[0][len(model_inputs["input_ids"][0]):]
-        full_output = tokenizer.decode(output_ids, skip_special_tokens=True)
-
-    del model_inputs
-    del generated_ids
-    del output_ids
-    torch.cuda.empty_cache()
-
-    fields_json = extract_json_from_output(full_output)
-    kv_result = KVResult(**fields_json)
-    
-    return InvoiceSchema(
-        Header=kv_result.Header,
-        Main_Table=kv_result.Main_Table,
-        Payment_Terms=kv_result.Payment_Terms,
-        Summary=kv_result.Summary,
-        Other_Important_Sections=kv_result.Other_Important_Sections,
-    ).model_dump()
+    try:
+        obj = InvoiceSchema.model_validate(data)
+        return obj.model_dump(by_alias=True, exclude_none=True)
+    except Exception:
+        return data
