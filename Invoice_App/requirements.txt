@@ -4,6 +4,8 @@ uvicorn
 gunicorn
 httpx
 jinja2
+torchvision==0.18.0
+torchaudio==2.3.0
 
 # === File Handling & PDFs ===
 pdf2image
