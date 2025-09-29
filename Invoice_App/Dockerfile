@@ -12,4 +12,4 @@ COPY app ./app
 COPY main.py ./main.py
 
 ENV HOST=0.0.0.0 PORT=8080
-CMD ["gunicorn", "main:app", "-k", "uvicorn.workers.UvicornWorker", "-w", "2", "-b", "0.0.0.0:8080", "--timeout", "180"]
+CMD ["gunicorn", "main:app", "-k", "uvicorn.workers.UvicornWorker", "-w", "1", "-b", "0.0.0.0:8080", "--timeout", "600"]
