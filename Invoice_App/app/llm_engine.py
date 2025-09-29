@@ -1,13 +1,38 @@
-from unsloth import FastModel
-from functools import lru_cache
+import os
+import httpx
+from typing import List, Dict, Any
 
-@lru_cache()
-def load_llm():
-    model, tokenizer = FastModel.from_pretrained(
-        model_name="unsloth/Qwen3-8B-unsloth-bnb-4bit",
-        max_seq_length=8192,
-        load_in_4bit=True,
-        load_in_8bit=False,
-        device_map="auto"
-    )
-    return model.eval(), tokenizer
+VLLM_BASE_URL = os.getenv("VLLM_BASE_URL", "http://localhost:8001/v1")
+VLLM_MODEL = os.getenv("VLLM_MODEL", "Qwen/Qwen3-8B") 
+VLLM_API_KEY = os.getenv("VLLM_API_KEY", "changeme")
+
+DEFAULT_TIMEOUT = float(os.getenv("VLLM_TIMEOUT", "180"))
+DEFAULT_MAX_TOKENS = int(os.getenv("VLLM_MAX_TOKENS", "3000"))
+DEFAULT_TEMPERATURE = float(os.getenv("VLLM_TEMPERATURE", "0.0"))
+
+async def chat_async(messages: List[Dict[str, Any]], *, temperature: float | None = None, max_tokens: int | None = None) -> str:
+    headers = {"Authorization": f"Bearer {VLLM_API_KEY}"}
+    payload = {
+        "model": VLLM_MODEL,
+        "messages": messages,
+        "temperature": DEFAULT_TEMPERATURE if temperature is None else temperature,
+        "max_tokens": DEFAULT_MAX_TOKENS if max_tokens is None else max_tokens,
+    }
+    async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
+        r = await client.post(f"{VLLM_BASE_URL}/chat/completions", headers=headers, json=payload)
+        r.raise_for_status()
+        data = r.json()
+        return data["choices"][0]["message"]["content"]
+
+def chat(messages: List[Dict[str, Any]], *, temperature: float | None = None, max_tokens: int | None = None) -> str:
+    return httpx.post(
+        f"{VLLM_BASE_URL}/chat/completions",
+        headers={"Authorization": f"Bearer {VLLM_API_KEY}"},
+        json={
+            "model": VLLM_MODEL,
+            "messages": messages,
+            "temperature": DEFAULT_TEMPERATURE if temperature is None else temperature,
+            "max_tokens": DEFAULT_MAX_TOKENS if max_tokens is None else max_tokens,
+        },
+        timeout=DEFAULT_TIMEOUT,
+    ).json()["choices"][0]["message"]["content"]
