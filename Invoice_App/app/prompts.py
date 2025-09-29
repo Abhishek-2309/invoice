@@ -1,4 +1,4 @@
-kv2_prompt = """
+kv_prompt = """
   You are given the markdown of an Invoice document with tables enclosed within '<table>' tags.
   Map all the fields in the below JSON schema to the closest value associated with it that is present in the markdown input.
   Note:
