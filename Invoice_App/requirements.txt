@@ -23,6 +23,3 @@ pydantic>=2.7
 uuid
 beautifulsoup4
 
-# NOTE:
-# - Unsloth & bitsandbytes removed (vLLM serves Qwen3).
-# - Torch kept for OCR (nanonets-ocr-s).
