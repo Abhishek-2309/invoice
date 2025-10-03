@@ -1,4 +1,5 @@
 services:
+  # Text LLM (Qwen3) vLLM server
   vllm:
     image: vllm/vllm-openai:latest
     command: >
@@ -26,20 +27,50 @@ services:
           devices:
             - capabilities: [gpu]
     runtime: nvidia
+  # OCR LLM (Nanonets-OCR-s) vLLM server
+  vllm-ocr:
+    image: vllm/vllm-openai:latest
+    command: >
+      --model ${OCR_VLLM_MODEL}
+      --tensor-parallel-size 1
+      --max-model-len ${OCR_VLLM_MAX_MODEL_LEN:-8192}
+      --gpu-memory-utilization ${OCR_VLLM_MEM_UTIL:-0.30}
+      --dtype auto
+      --max-num-seqs ${OCR_VLLM_MAX_NUM_SEQS:-8}
+      --max-num-batched-tokens ${OCR_VLLM_MAX_BATCHED_TOKENS:-2048}
+      --port 8002
+      --download-dir /root/.cache/huggingface
+    environment:
+      - HF_HOME=/root/.cache/huggingface
+      - HF_HUB_ENABLE_HF_TRANSFER=1
+    volumes:
+      - /home/ubuntu/hf-cache:/root/.cache/huggingface
+      - /home/ubuntu/vllm-cache:/root/.cache/vllm
+    ports:
+      - "8002:8002"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+    runtime: nvidia
 
+  # FastAPI app
   app:
     build: .
     environment:
       - VLLM_BASE_URL=http://vllm:8000/v1
       - VLLM_MODEL=${VLLM_MODEL}
       - VLLM_API_KEY=${VLLM_API_KEY}
+      - OCR_VLLM_BASE_URL=${OCR_VLLM_BASE_URL:-http://vllm-ocr:8002/v1}
+      - OCR_VLLM_MODEL=${OCR_VLLM_MODEL}
       - TRANSFORMERS_CACHE=/root/.cache/huggingface
-      - PYTHONBUFFERED=1
+      - PYTHONUNBUFFERED=1
     ports:
       - "8080:8080"
-    runtime: nvidia
     volumes:
       - /home/ubuntu/hf-cache:/root/.cache/huggingface
       - /home/ubuntu/vllm-cache:/root/.cache/vllm
     depends_on:
       - vllm
+      - vllm-ocr
