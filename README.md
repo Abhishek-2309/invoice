@@ -29,66 +29,66 @@ This setup also requires a docker file, a docker yml file and an env file for se
 
 After entering the instance, run these commands to download the required drivers.
 
-sudo apt update
-sudo apt -y install ubuntu-drivers-common
-sudo ubuntu-drivers install   # installs recommended, e.g. nvidia-driver-550+
-sudo reboot
+- sudo apt update
+- sudo apt -y install ubuntu-drivers-common
+- sudo ubuntu-drivers install   # installs recommended, e.g. nvidia-driver-550+
+- sudo reboot
 
 After reboot:
-nvidia-smi
+- nvidia-smi
 (Should show NVIDIA driver + L40S GPU.)
 
 # 3. Install Docker Engine & Compose
 
 Next, the docker engine has to be installed based on the following steps:
 
-sudo apt remove -y docker docker-engine docker.io containerd runc || true
+- sudo apt remove -y docker docker-engine docker.io containerd runc || true
 
-sudo apt update
-sudo apt -y install ca-certificates curl gnupg
-sudo install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
-  https://download.docker.com/linux/ubuntu noble stable" | \
-  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+- sudo apt update
+- sudo apt -y install ca-certificates curl gnupg
+- sudo install -m 0755 -d /etc/apt/keyrings
+- curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+- echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+    https://download.docker.com/linux/ubuntu noble stable" | \
+    sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
-sudo apt update
-sudo apt -y install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+- sudo apt update
+- sudo apt -y install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
-sudo usermod -aG docker $USER
-newgrp docker
+- sudo usermod -aG docker $USER
+- newgrp docker
 
 # 4. Install NVIDIA Container Toolkit
 
 Next, the NVIDIA Container Toolkit is to be installed
 
-curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey \
-  | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+- curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey \
+   | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
 
-curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list \
+- curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list \
   | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#' \
   | sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list > /dev/null
 
-sudo apt update
-sudo apt install -y nvidia-container-toolkit
+- sudo apt update
+- sudo apt install -y nvidia-container-toolkit
 
-sudo nvidia-ctk runtime configure --runtime=docker
-sudo systemctl restart docker
+- sudo nvidia-ctk runtime configure --runtime=docker
+- sudo systemctl restart docker
 
 Check:
-docker run --rm --gpus all nvidia/cuda:12.1.1-base-ubuntu22.04 nvidia-smi
+- docker run --rm --gpus all nvidia/cuda:12.1.1-base-ubuntu22.04 nvidia-smi
 
 Should show your GPU inside Docker. Ubuntu22.04 is used as a lot of libraries have pre built wheels for it and setup is far less complicated compared to the 24.04 instance.
 
 # 5. Clone repository
 
-git clone https://github.com/<you>/<your-repo>.git
-cd <your-repo>/Invoice_App
+- git clone https://github.com/<you>/<your-repo>.git
+- cd <your-repo>/Invoice_App
 
 # 6. Configure environment
 
-cp .env.example .env
-nano .env
+- cp .env.example .env
+- nano .env
 
 **Refer to the env file given with the code and enter the following**
 
