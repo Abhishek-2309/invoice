@@ -1,98 +1,155 @@
-Invoice-Handler
+Invoice Processing Pipeline (Qwen3 + Nanonets-OCR-s via vLLM)
 
-This project provides a FastAPI-based service for automatically extracting structured data from invoices, with the help of Nanonets-ocr-s and a quantized large language model (LLM) - Qwen3:8B to parse invoice text and tables into a  JSON schema.
+This pipeline runs two LLMs on a single GPU server. The main difference between this pipeline and the previous pipeline is the usage of the vLLM library to serve the 2nd model. vLLM provides a high throughput and quicker inference based on the concept of paged attention.
 
-LLMs Used:
+Three containers were created - one for the entire application along with its endpoints , second for the vLLM served Qwen3 model and another for the vLLM served OCR model . When a request is made for a file, OCR processing is done in the OCR container and a request made to the vLLM container to provide an output based on this. These are the containers:
 
-1) nanonets-ocr-s - First LLM used to get the OCR of an Image
-2) Qwen3:8B  - used to get a JSON output.
+* OCR LLM (vllm-ocr): nanonets/Nanonets-OCR-s served through vLLM (for extracting text + tables as markdown/HTML from PDFs/images).
+* Text LLM (vllm): Qwen3-8B served through vLLM (for parsing OCR markdown into structured JSON).
+* App Service (app): FastAPI app that exposes REST endpoints (/upload, /upload_zip) and internally orchestrates OCR + text parsing.
 
+This is deployed on AWS g6e.xlarge (1× NVIDIA L40S GPU with ~48 GB VRAM, 64 GB CPU RAM). with a Disk Size of: 120 GB (models + cache + Docker layers).
 
-The pipeline works as follows:
+The reason for running Docker + vLLM is because
+* vLLM enables high-throughput inference via paged attention, cutting down processing time
+* Docker isolates all dependencies and CUDA versions. This enables us to easily fix library mismatches and version dependencies.
 
-1) On startup of the application, both the models - Qwen3 and nanonets-ocr are loaded onto memory.
-2) Once started up, there are 2 routes/endpoints available to the user to either upload a single PDF/Image or a zip file containing multiple such files.
-3) If a zip file is sent, using the os.walk function, we walk through every file that has either image or pdf related extension and run the pipeline for those files alone.
-4) For each file, we run the OCR LLM with a pre-specified prompt, once the output is obtained, we remove the unnecessary text present and give the required table htmls + text to the next parsing step
-5) The OCR output is sent into a Qwen3-8B model, quantized via Unsloth, for fast inference on GPUs, as instantiated in llm_engine.py
-6) The Output obtained previously, is passed through to this model, it gives the outputs for the fields based on a structured prompt in prompts.py, including keys for buyer/seller details, table items, summary details, payment details and others
-7) Once an output is obtained, it is further parsed through to remove unnecessary details not part of the JSON structure and its schema is verified with pydantic models present in the schema.py file.
-8) The final result is given as a structured JSON for either a single file or a directory of files.
+Steps to Set Up
 
+1. Launch GPU instance and create the files.
 
-Tech Stack
+Since 2 LLMs are run with a storage close to 30-35GB atleast combined, it is advisable to run it on an instance like g6e.xlarge, which has 48gb GPU VRAM as well as Nvidia’s L40s GPU which provides faster throughput compared to most other chipsets.
+* Use AWS g6e.xlarge (Ubuntu 24.04).
+* Attach 100–120 GB disk.
 
-Core
-
-FastAPI: High-performance API framework
-Uvicorn/Gunicorn: ASGI server for deployment
-Pydantic v2: Request/response validation
-
-OCR
-
-nanonets-ocr-s
-pdf2image: PDF rendering
-Pillow / OpenCV: Image handling
-
-LLM Inference
-
-Unsloth: For Qwen3-8B quantization and faster inference
-Transformers >= 4.38.0: Model loading/inference
-Torch >= 2.0.0: GPU/CPU execution
-Accelerate: Efficient model distribution
-Safetensors: Faster weight loading
-
-Utilities
-
-httpx: Async HTTP client
-tenacity: Retry logic
-uuid: Unique IDs for tracking/debugging
-
-Project Structure
-
-main.py - FastAPI entrypoint
-
-routes.py - API endpoints 
-
-schemas.py - Pydantic models for JSON responses
-
-prompts.py - Invoice prompt 
-
-ocr.py - nanonets-ocr-s extrction  
-
-llm_engine.py - Model loading for Qwen LLM
-
-llm_processing.py - Prompt builder + JSON postprocessing
-
-Folder_Processing.py - Utility for bulk folder-based processing
-
-requirements.txt - Dependencies
-
-How It Works
-Flow
-
-Upload → Invoice uploaded as image or PDF.
-
-OCR → Nanonets extracts text and HTML tables.
-
-Prompting → Text is wrapped into a structured prompt.
-
-Inference → Qwen3-8B generates JSON.
-
-Validation → JSON parsed & validated via Pydantic.
-
-Response → Clean structured JSON returned to client.
+This setup also requires a docker file, a docker yml file and an env file for setting up the vLLM configs. These files can be modified depending on the instance and models and are needed to setup the containers.
 
 
+2. Install NVIDIA drivers
 
+After entering the instance, run these commands to download the required drivers.
 
-Deployment
-Local (development)
-uvicorn main:app --reload
+sudo apt update
+sudo apt -y install ubuntu-drivers-common
+sudo ubuntu-drivers install   # installs recommended, e.g. nvidia-driver-550+
+sudo reboot
 
-Production (example with Gunicorn + Uvicorn workers)
-gunicorn -k uvicorn.workers.UvicornWorker -w 1 main:app --bind 0.0.0.0:8000
+After reboot:
+nvidia-smi
+(Should show NVIDIA driver + L40S GPU.)
 
-Performance Considerations
+3. Install Docker Engine & Compose
 
-GPU Required: Best performance on x86 with CUDA-enabled NVIDIA GPUs.
+Next, the docker engine has to be installed based on the following steps:
+
+sudo apt remove -y docker docker-engine docker.io containerd runc || true
+
+sudo apt update
+sudo apt -y install ca-certificates curl gnupg
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+  https://download.docker.com/linux/ubuntu noble stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+sudo apt update
+sudo apt -y install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+# This allows docker without sudo
+sudo usermod -aG docker $USER
+newgrp docker
+
+4. Install NVIDIA Container Toolkit
+
+Next, the NVIDIA Container Toolkit is to be installed
+
+curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey \
+  | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+
+curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list \
+  | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#' \
+  | sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list > /dev/null
+
+sudo apt update
+sudo apt install -y nvidia-container-toolkit
+
+sudo nvidia-ctk runtime configure --runtime=docker
+sudo systemctl restart docker
+
+Check:
+docker run --rm --gpus all nvidia/cuda:12.1.1-base-ubuntu22.04 nvidia-smi
+
+Should show your GPU inside Docker. Ubuntu22.04 is used as a lot of libraries have pre built wheels for it and setup is far less complicated compared to the 24.04 instance.
+
+5. Clone repository
+
+git clone https://github.com/<you>/<your-repo>.git
+cd <your-repo>/Invoice_App
+
+6. Configure environment
+
+cp .env.example .env
+nano .env
+
+**Refer to the env file given with the code and enter the following**
+
+Set:
+
+VLLM_API_KEY=changeme
+
+# Qwen3 vLLM
+VLLM_MODEL=Qwen/Qwen3-8B-Instruct-AWQ
+VLLM_MEM_UTIL=0.65
+VLLM_MAX_MODEL_LEN=16384
+VLLM_MAX_NUM_SEQS=32
+VLLM_MAX_BATCHED_TOKENS=4096
+
+# OCR vLLM
+OCR_VLLM_MODEL=nanonets/Nanonets-OCR-s
+OCR_VLLM_MEM_UTIL=0.30
+OCR_VLLM_MAX_MODEL_LEN=8192
+OCR_VLLM_MAX_NUM_SEQS=8
+OCR_VLLM_MAX_BATCHED_TOKENS=2048
+OCR_VLLM_BASE_URL=http://vllm-ocr:8002/v1
+
+Here, I assigned 65% of GPU utilization and 30% to Qwen3:8B and Nanonets respectively. This is catered to the g6e instance which has 48GB of GPU VRAM and can be suitably changed for another instance.
+
+7. Start containers
+Always start in this order (so VRAM is sliced correctly):
+
+cd ~/invoice/Invoice_App
+
+docker compose down
+
+# 1) Start OCR vLLM
+docker compose up -d vllm-ocr
+docker compose logs -f vllm-ocr   # wait until "Application startup complete."
+
+# 2) Start text vLLM
+docker compose up -d vllm
+docker compose logs -f vllm  # wait until "Application startup complete."
+
+# 3) Build and start the app
+docker compose build --no-cache app
+docker compose up -d app
+docker compose logs -f app # wait until "Application startup complete."
+
+8. Verify
+
+* GPU split:
+nvidia-smi
+Two vLLM processes, one ~65% VRAM (Qwen3), one ~30% VRAM (OCR).
+
+9. Send a test file
+From your local machine:
+
+curl -F "file=@/path/to/invoice.pdf" http://<EC2_PUBLIC_IP>:8080/upload
+The app:
+1. Calls OCR vLLM (nanonets-ocr-s) to extract text/tables → markdown.
+2. Sends markdown to Qwen3 vLLM for JSON extraction.
+3. Returns validated JSON response.
+
+10. Maintenance
+* Stop stack: docker compose down
+* Free space: docker system prune -af && docker volume prune -f
+* Check logs: docker compose logs -f app
