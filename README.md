@@ -94,55 +94,55 @@ Should show your GPU inside Docker. Ubuntu22.04 is used as a lot of libraries ha
 
 Set:
 
-VLLM_API_KEY=changeme
+- VLLM_API_KEY=changeme
 
-# Qwen3 vLLM
-VLLM_MODEL=Qwen/Qwen3-8B-Instruct-AWQ
-VLLM_MEM_UTIL=0.65
-VLLM_MAX_MODEL_LEN=16384
-VLLM_MAX_NUM_SEQS=32
-VLLM_MAX_BATCHED_TOKENS=4096
+* This is for the Qwen3 vLLM *
+- VLLM_MODEL=Qwen/Qwen3-8B-Instruct-AWQ
+- VLLM_MEM_UTIL=0.65
+- VLLM_MAX_MODEL_LEN=16384
+- VLLM_MAX_NUM_SEQS=32
+- VLLM_MAX_BATCHED_TOKENS=4096
 
-# OCR vLLM
-OCR_VLLM_MODEL=nanonets/Nanonets-OCR-s
-OCR_VLLM_MEM_UTIL=0.30
-OCR_VLLM_MAX_MODEL_LEN=8192
-OCR_VLLM_MAX_NUM_SEQS=8
-OCR_VLLM_MAX_BATCHED_TOKENS=2048
-OCR_VLLM_BASE_URL=http://vllm-ocr:8002/v1
+* This is for the OCR vLLM *
+- OCR_VLLM_MODEL=nanonets/Nanonets-OCR-s
+- OCR_VLLM_MEM_UTIL=0.30
+- OCR_VLLM_MAX_MODEL_LEN=8192
+- OCR_VLLM_MAX_NUM_SEQS=8
+- OCR_VLLM_MAX_BATCHED_TOKENS=2048
+- OCR_VLLM_BASE_URL=http://vllm-ocr:8002/v1
 
 Here, I assigned 65% of GPU utilization and 30% to Qwen3:8B and Nanonets respectively. This is catered to the g6e instance which has 48GB of GPU VRAM and can be suitably changed for another instance.
 
 # 7. Start containers
 Always start in this order (so VRAM is sliced correctly):
 
-cd ~/invoice/Invoice_App
+- cd ~/invoice/Invoice_App
+- docker compose down
 
-docker compose down
+* 1) Start OCR vLLM * 
+- docker compose up -d vllm-ocr
+- docker compose logs -f vllm-ocr   # wait until "Application startup complete."
 
-# 1) Start OCR vLLM
-docker compose up -d vllm-ocr
-docker compose logs -f vllm-ocr   # wait until "Application startup complete."
+* 2) Start text vLLM *
+- docker compose up -d vllm
+- docker compose logs -f vllm  # wait until "Application startup complete."
 
-# 2) Start text vLLM
-docker compose up -d vllm
-docker compose logs -f vllm  # wait until "Application startup complete."
-
-# 3) Build and start the app
-docker compose build --no-cache app
-docker compose up -d app
-docker compose logs -f app # wait until "Application startup complete."
+* 3) Build and start the app *
+- docker compose build --no-cache app
+- docker compose up -d app
+- docker compose logs -f app # wait until "Application startup complete."
 
 # 8. Verify
 
 * GPU split:
-nvidia-smi
+- nvidia-smi
 Two vLLM processes, one ~65% VRAM (Qwen3), one ~30% VRAM (OCR).
 
 # 9. Send a test file
 From your local machine:
 
 curl -F "file=@/path/to/invoice.pdf" http://<EC2_PUBLIC_IP>:8080/upload
+
 The app:
 1. Calls OCR vLLM (nanonets-ocr-s) to extract text/tables → markdown.
 2. Sends markdown to Qwen3 vLLM for JSON extraction.
