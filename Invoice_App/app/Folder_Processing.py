@@ -34,7 +34,10 @@ def process_zip(zip_file: UploadFile, output_dir: str) -> Dict[str, dict]:
                         markdown = ocr_page_with_nanonets(full_path)
                         print(markdown)
                         output = process_invoice_dir(markdown)
-
+                    
+                    elif ext == '.zip':
+                        continue
+                        
                     elif ext == ".pdf":
                         images = convert_from_path(full_path, dpi=300)
                         full_markdown = ""
