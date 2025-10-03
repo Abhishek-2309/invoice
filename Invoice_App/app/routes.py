@@ -1,70 +1,128 @@
 import os
-import shutil
 import tempfile
 import uuid
 import httpx
-from fastapi import APIRouter, UploadFile, File, HTTPException
-from pdf2image import convert_from_path
+from fastapi import APIRouter, UploadFile, File, HTTPException, Query
 from fastapi.responses import JSONResponse
-from app.llm_processing import process_invoice_dir
+from pdf2image import convert_from_path
+from typing import Dict, Callable
+
 from app.ocr import ocr_page_with_nanonets
 from app.Folder_Processing import process_zip
-from typing import Dict
+from app.llm_processing import (
+    process_invoice_items,
+    process_invoice_compact,
+)
 
 router = APIRouter()
 
 UPLOAD_DIR = "uploads"
 JSON_OUTPUT_DIR = os.path.join(UPLOAD_DIR, "json_results")
-
 os.makedirs(JSON_OUTPUT_DIR, exist_ok=True)
+
+VLLM_BASE_URL = os.getenv("VLLM_BASE_URL", "http://vllm:8000/v1")
+OCR_VLLM_BASE_URL = os.getenv("OCR_VLLM_BASE_URL", "http://vllm-ocr:8002/v1")
+
 
 @router.get("/healthz")
 async def healthz():
-    base = os.getenv("VLLM_BASE_URL", "http://localhost:8001/v1")
-    try:
-        async with httpx.AsyncClient(timeout=5) as client:
-            r = await client.get(base.replace("/v1", "/v1/models"))
-        ok = r.status_code == 200
-        return {"ok": ok, "vllm_models": r.json() if ok else None}
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"ok": False, "error": str(e)})
+    """
+    Checks both vLLM servers:
+      - Text LLM (Qwen3) on VLLM_BASE_URL
+      - OCR LLM (Nanonets-OCR-s) on OCR_VLLM_BASE_URL
+    """
+    async def ping(url: str) -> Dict:
+        try:
+            async with httpx.AsyncClient(timeout=5) as client:
+                r = await client.get(url.rstrip("/") + "/models")
+            ok = r.status_code == 200
+            return {"ok": ok, "models": r.json() if ok else None}
+        except Exception as e:
+            return {"ok": False, "error": str(e)}
 
-@router.post("/upload")
-async def upload_file(file: UploadFile = File(...)):
-    try:
-        suffix = os.path.splitext(file.filename)[1].lower()
-        with tempfile.TemporaryDirectory() as tmpdir:
-            if suffix in [".png", ".jpg", ".jpeg"]:
-                tmp_path = os.path.join(tmpdir, f"{uuid.uuid4().hex}{suffix}")
-                with open(tmp_path, "wb") as f:
-                    f.write(await file.read())
-                md = ocr_page_with_nanonets(tmp_path)
-                return process_invoice_dir(md)
+    text_llm = await ping(VLLM_BASE_URL)
+    ocr_llm = await ping(OCR_VLLM_BASE_URL)
 
-            elif suffix == ".pdf":
-                tmp_pdf = os.path.join(tmpdir, f"{uuid.uuid4().hex}.pdf")
-                with open(tmp_pdf, "wb") as f:
-                    f.write(await file.read())
-                images = convert_from_path(tmp_pdf)
-                full_markdown = "\n".join(ocr_page_with_nanonets(_img_to_tmp(img, tmpdir)) for img in images)
-                return process_invoice_dir(full_markdown)
+    ok = text_llm.get("ok", False) and ocr_llm.get("ok", False)
+    return {"ok": ok, "text_llm": text_llm, "ocr_llm": ocr_llm}
 
-            else:
-                raise HTTPException(status_code=400, detail="Only image/PDF supported")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Processing failed: {e}")
 
 def _img_to_tmp(img, tmpdir: str) -> str:
     p = os.path.join(tmpdir, f"{uuid.uuid4().hex}.png")
     img.save(p)
     return p
 
-@router.post("/upload_zip")
-async def upload_zip(file: UploadFile = File(...)) -> Dict[str, dict]:
-    if not file.filename.endswith(".zip"):
-        raise HTTPException(status_code=400, detail="Please upload a .zip file")
+
+async def _process_single_file(file: UploadFile, process_fn: Callable[[str], Dict]):
+    """
+    Common single-file processing:
+      - Image: OCR once → markdown → process_fn(markdown)
+      - PDF: split to images, OCR page-wise → join markdown → process_fn(full_markdown)
+    """
     try:
-        result = process_zip(file, JSON_OUTPUT_DIR)
-        return result
+        suffix = os.path.splitext(file.filename)[1].lower()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            if suffix in [".png", ".jpg", ".jpeg", ".webp", ".tiff", ".bmp"]:
+                tmp_path = os.path.join(tmpdir, f"{uuid.uuid4().hex}{suffix}")
+                with open(tmp_path, "wb") as f:
+                    f.write(await file.read())
+                md = ocr_page_with_nanonets(tmp_path)
+                return process_fn(md)
+
+            elif suffix == ".pdf":
+                tmp_pdf = os.path.join(tmpdir, f"{uuid.uuid4().hex}.pdf")
+                with open(tmp_pdf, "wb") as f:
+                    f.write(await file.read())
+                images = convert_from_path(tmp_pdf, dpi=300)
+                parts = []
+                for img in images:
+                    img_path = _img_to_tmp(img, tmpdir)
+                    parts.append(ocr_page_with_nanonets(img_path))
+                full_markdown = "\n".join(parts)
+                return process_fn(full_markdown)
+
+            else:
+                raise HTTPException(status_code=400, detail="Only image/PDF supported")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Processing failed: {e}")
+
+
+
+@router.post("/upload_items")
+async def upload_items(file: UploadFile = File(...)):
+    """
+    Uses the 'items' prompt/schema (Main_Table.items = list[dict]).
+    """
+    result = await _process_single_file(file, process_invoice_items)
+    return {"mode": "items", "result": result}
+
+
+@router.post("/upload_compact")
+async def upload_compact(file: UploadFile = File(...)):
+    """
+    Uses the 'compact' prompt/schema (Main_Table.columns + rows).
+    """
+    result = await _process_single_file(file, process_invoice_compact)
+    return {"mode": "compact", "result": result}
+
+
+@router.post("/upload_zip")
+async def upload_zip(
+    file: UploadFile = File(...),
+    mode: str = Query("items", regex="^(items|compact)$"),
+) -> Dict[str, dict]:
+    """
+    Upload a .zip containing PDFs/images.
+    mode = items | compact (defaults to 'items').
+    """
+    if not file.filename.lower().endswith(".zip"):
+        raise HTTPException(status_code=400, detail="Please upload a .zip file")
+
+    process_fn = process_invoice_items if mode == "items" else process_invoice_compact
+    try:
+        result = process_zip(file, JSON_OUTPUT_DIR, process_fn=process_fn)
+        return {"mode": mode, "results": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Bulk processing failed: {e}")
