@@ -1,4 +1,4 @@
-Invoice Processing Pipeline (Qwen3 + Nanonets-OCR-s via vLLM)
+# Invoice Processing Pipeline (Qwen3 + Nanonets-OCR-s via vLLM)
 
 This pipeline runs two LLMs on a single GPU server. The main difference between this pipeline and the previous pipeline is the usage of the vLLM library to serve the 2nd model. vLLM provides a high throughput and quicker inference based on the concept of paged attention.
 
@@ -14,9 +14,9 @@ The reason for running Docker + vLLM is because
 * vLLM enables high-throughput inference via paged attention, cutting down processing time
 * Docker isolates all dependencies and CUDA versions. This enables us to easily fix library mismatches and version dependencies.
 
-Steps to Set Up
+# Steps to Set Up
 
-1. Launch GPU instance and create the files.
+# 1. Launch GPU instance and create the files.
 
 Since 2 LLMs are run with a storage close to 30-35GB atleast combined, it is advisable to run it on an instance like g6e.xlarge, which has 48gb GPU VRAM as well as Nvidia’s L40s GPU which provides faster throughput compared to most other chipsets.
 * Use AWS g6e.xlarge (Ubuntu 24.04).
@@ -25,7 +25,7 @@ Since 2 LLMs are run with a storage close to 30-35GB atleast combined, it is adv
 This setup also requires a docker file, a docker yml file and an env file for setting up the vLLM configs. These files can be modified depending on the instance and models and are needed to setup the containers.
 
 
-2. Install NVIDIA drivers
+# 2. Install NVIDIA drivers
 
 After entering the instance, run these commands to download the required drivers.
 
@@ -38,7 +38,7 @@ After reboot:
 nvidia-smi
 (Should show NVIDIA driver + L40S GPU.)
 
-3. Install Docker Engine & Compose
+# 3. Install Docker Engine & Compose
 
 Next, the docker engine has to be installed based on the following steps:
 
@@ -55,11 +55,10 @@ echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.
 sudo apt update
 sudo apt -y install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
-# This allows docker without sudo
 sudo usermod -aG docker $USER
 newgrp docker
 
-4. Install NVIDIA Container Toolkit
+# 4. Install NVIDIA Container Toolkit
 
 Next, the NVIDIA Container Toolkit is to be installed
 
@@ -81,12 +80,12 @@ docker run --rm --gpus all nvidia/cuda:12.1.1-base-ubuntu22.04 nvidia-smi
 
 Should show your GPU inside Docker. Ubuntu22.04 is used as a lot of libraries have pre built wheels for it and setup is far less complicated compared to the 24.04 instance.
 
-5. Clone repository
+# 5. Clone repository
 
 git clone https://github.com/<you>/<your-repo>.git
 cd <your-repo>/Invoice_App
 
-6. Configure environment
+# 6. Configure environment
 
 cp .env.example .env
 nano .env
@@ -114,7 +113,7 @@ OCR_VLLM_BASE_URL=http://vllm-ocr:8002/v1
 
 Here, I assigned 65% of GPU utilization and 30% to Qwen3:8B and Nanonets respectively. This is catered to the g6e instance which has 48GB of GPU VRAM and can be suitably changed for another instance.
 
-7. Start containers
+# 7. Start containers
 Always start in this order (so VRAM is sliced correctly):
 
 cd ~/invoice/Invoice_App
@@ -134,13 +133,13 @@ docker compose build --no-cache app
 docker compose up -d app
 docker compose logs -f app # wait until "Application startup complete."
 
-8. Verify
+# 8. Verify
 
 * GPU split:
 nvidia-smi
 Two vLLM processes, one ~65% VRAM (Qwen3), one ~30% VRAM (OCR).
 
-9. Send a test file
+# 9. Send a test file
 From your local machine:
 
 curl -F "file=@/path/to/invoice.pdf" http://<EC2_PUBLIC_IP>:8080/upload
@@ -149,7 +148,7 @@ The app:
 2. Sends markdown to Qwen3 vLLM for JSON extraction.
 3. Returns validated JSON response.
 
-10. Maintenance
+# 10. Maintenance
 * Stop stack: docker compose down
 * Free space: docker system prune -af && docker volume prune -f
 * Check logs: docker compose logs -f app
